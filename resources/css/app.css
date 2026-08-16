@@ -1,0 +1,59 @@
+@import 'bootstrap/dist/css/bootstrap.min.css';
+
+/* Estilos personalizados adicionales */
+:root {
+    --primary-color: #1e293b;
+    --primary-light: #334155;
+    --secondary-bg: #f8f9fa;
+}
+
+/* Transiciones para Alpine.js */
+[x-cloak] {
+    display: none !important;
+}
+
+/* Mejoras de accesibilidad */
+.form-control:focus,
+.form-select:focus,
+.btn:focus {
+    box-shadow: 0 0 0 3px rgba(30, 41, 59, 0.15);
+}
+
+/* Animación de carga */
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+.loading-pulse {
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* Scroll suave */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Mejoras para móvil */
+@media (max-width: 576px) {
+    .stat-card {
+        padding: 0.75rem;
+    }
+    
+    .stat-card h3 {
+        font-size: 1.2rem;
+    }
+    
+    .table-container {
+        padding: 0.75rem;
+    }
+    
+    .btn {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.8rem;
+    }
+}
