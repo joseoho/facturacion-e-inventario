@@ -30,7 +30,7 @@ class UserSeeder extends Seeder
             'password' => Hash::make('Vendedor123!'),
             'role' => 'vendedor',
             'activo' => true,
-            'telefono' => '0412-5550002',
+            // 'telefono' => '0412-5550002',
         ]);
 
         // Usuario Vendedor 2
@@ -40,7 +40,7 @@ class UserSeeder extends Seeder
             'password' => Hash::make('Vendedor123!'),
             'role' => 'vendedor',
             'activo' => true,
-            'telefono' => '0412-5550003',
+            // 'telefono' => '0412-5550003',
         ]);
 
         // Usuario Administrador 2
@@ -50,7 +50,7 @@ class UserSeeder extends Seeder
             'password' => Hash::make('Admin123!'),
             'role' => 'admin',
             'activo' => true,
-            'telefono' => '0412-5550004',
+            // 'telefono' => '0412-5550004',
         ]);
 
         // Usuario inactivo (para pruebas)
@@ -60,7 +60,7 @@ class UserSeeder extends Seeder
             'password' => Hash::make('Inactivo123!'),
             'role' => 'vendedor',
             'activo' => false,
-            'telefono' => '0412-5550005',
+            // 'telefono' => '0412-5550005',
         ]);
     }
 }

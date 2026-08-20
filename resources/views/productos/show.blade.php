@@ -7,11 +7,11 @@
 <div class="stat-card">
     <div class="row">
         <div class="col-md-4 text-center">
-            @if($producto->imagen)
+            @if($producto->imagen && file_exists(public_path('storage/' . $producto->imagen)))
                 <img src="{{ asset('storage/' . $producto->imagen) }}" 
                      alt="{{ $producto->nombre }}" 
                      class="img-fluid rounded" 
-                     style="max-height: 300px;">
+                     style="max-height: 300px; width: auto;">
             @else
                 <div class="bg-light rounded p-5">
                     <i class="bi bi-box fs-1 text-muted"></i>

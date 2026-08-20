@@ -17,7 +17,7 @@ class Moneda extends Model
         'nombre',
         'simbolo',
         'es_base',
-        'activa',
+        'activo',
     ];
 
     protected $casts = [

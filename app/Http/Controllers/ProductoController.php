@@ -57,7 +57,7 @@ class ProductoController extends Controller
     public function create()
     {
         $categorias = Categoria::where('activo', true)->orderBy('nombre')->get();
-        $monedas = Moneda::where('activa', true)->get();
+        $monedas = Moneda::where('activo', true)->get();
         
         return view('productos.create', compact('categorias', 'monedas'));
     }
@@ -84,8 +84,9 @@ class ProductoController extends Controller
         if ($request->hasFile('imagen')) {
             $imagen = $request->file('imagen');
             $nombreImagen = Str::slug($validated['nombre']) . '_' . time() . '.' . $imagen->getClientOriginalExtension();
+            // Guardar en storage/app/public/productos
             $path = $imagen->storeAs('productos', $nombreImagen, 'public');
-            $validated['imagen'] = $path;
+            $validated['imagen'] = $path; // Esto guarda "productos/nombre_imagen.jpg"
         }
 
         $validated['activo'] = $request->has('activo');
@@ -123,7 +124,7 @@ class ProductoController extends Controller
     public function edit(Producto $producto)
     {
         $categorias = Categoria::where('activo', true)->orderBy('nombre')->get();
-        $monedas = Moneda::where('activa', true)->get();
+        $monedas = Moneda::where('activo', true)->get();
         $producto->load('preciosProductos');
         
         return view('productos.edit', compact('producto', 'categorias', 'monedas'));
@@ -196,7 +197,7 @@ class ProductoController extends Controller
     public function precios(Producto $producto)
     {
         $producto->load('preciosProductos.moneda', 'preciosProductos.tasaCambio');
-        $monedas = Moneda::where('activa', true)->get();
+        $monedas = Moneda::where('activo', true)->get();
         $tasasCambio = TasaCambio::where('tasa', true)->get();
         
         return view('productos.precios', compact('producto', 'monedas', 'tasasCambio'));

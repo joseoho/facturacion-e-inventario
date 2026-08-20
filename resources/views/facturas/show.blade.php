@@ -154,7 +154,7 @@
         <div class="row g-2 text-muted small">
             <div class="col-md-4">
                 <i class="bi bi-person me-1"></i> 
-                Creada por: {{ $factura->usuario->name }}
+                Creada por: {{ $factura->user->name }}
             </div>
             <div class="col-md-4">
                 <i class="bi bi-clock me-1"></i> 
