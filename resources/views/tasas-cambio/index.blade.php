@@ -262,7 +262,7 @@
                                 </div>
                             </td>
                             <td class="text-end fw-bold">
-                                <span class="text-primary">{{ number_format($tasa->tasa, 6) }}</span>
+                                <span class="text-primary">{{ number_format($tasa->tasa, 2) }}</span>
                             </td>
                             <td>
                                 <span>{{ $tasa->fecha->format('d/m/Y') }}</span>

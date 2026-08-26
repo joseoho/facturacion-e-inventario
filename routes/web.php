@@ -64,14 +64,24 @@ Route::middleware(['auth'])->group(function () {
     Route::get('clientes/buscar', [ClienteController::class, 'buscar'])->name('clientes.buscar');
     Route::post('clientes/{cliente}/cambiar-estado', [ClienteController::class, 'cambiarEstado'])->name('clientes.cambiar-estado');
     Route::get('clientes/{cliente}/facturas', [ClienteController::class, 'facturas'])->name('clientes.facturas');
-    // Módulo de Facturación - Administradores y Vendedores
-    Route::resource('facturas', FacturaController::class);
-     Route::get('productos/buscar', [ProductoController::class, 'buscar'])->name('productos.buscar');
-    Route::post('facturas/{factura}/anular', [FacturaController::class, 'anular'])->name('facturas.anular');
-    Route::post('facturas/{factura}/pagar', [FacturaController::class, 'pagar'])->name('facturas.pagar');
-    Route::get('facturas/{factura}/pdf', [FacturaController::class, 'pdf'])->name('facturas.pdf');
-    Route::get('facturas/{factura}/imprimir', [FacturaController::class, 'imprimir'])->name('facturas.imprimir');
-    
+    // // Módulo de Facturación - Administradores y Vendedores
+    // Route::resource('facturas', FacturaController::class);
+    // // Ruta para buscar productos
+    // Route::get('/facturas/buscar-productos', [FacturaController::class, 'buscarProductos'])->name('facturas.buscar-productos');
+    // Route::post('/facturas/{factura}/anular', [FacturaController::class, 'anular'])->name('facturas.anular');
+    // Route::post('/facturas/{factura}/pagar', [FacturaController::class, 'pagar'])->name('facturas.pagar');
+    // Route::get('/facturas/{factura}/pdf', [FacturaController::class, 'pdf'])->name('facturas.pdf');
+    // Route::get('/facturas/{factura}/imprimir', [FacturaController::class, 'imprimir'])->name('facturas.imprimir');
+    // Ruta de facturas
+Route::resource('facturas', FacturaController::class);
+
+// Rutas para acciones AJAX
+Route::post('/facturas/{factura}/anular', [FacturaController::class, 'anular'])->name('facturas.anular');
+Route::post('/facturas/{factura}/pagar', [FacturaController::class, 'pagar'])->name('facturas.pagar');
+
+// Ruta para buscar productos
+Route::get('/facturas/buscar-productos', [FacturaController::class, 'buscarProductos'])->name('facturas.buscar-productos');
+
     // Reportes - Solo administradores
     Route::prefix('reportes')->name('reportes.')->middleware('role:admin')->group(function () {
     // Reporte de Inventario
