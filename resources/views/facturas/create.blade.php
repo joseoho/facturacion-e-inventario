@@ -242,13 +242,12 @@
                                         </td>
                                         <td>
                                             <div class="input-group input-group-sm">
-                                                <input type="number" 
-                                                       class="form-control text-end" 
-                                                       x-model="item.cantidad_kg"
-                                                       @input="calcularItem(index)"
-                                                       step="0.001"
-                                                       min="0.001"
-                                                       required>
+                                                <input type="text" 
+                                                    class="form-control text-end" 
+                                                    x-model="item.cantidad_kg"
+                                                    @input="item.cantidad_kg = $event.target.value.replace(/[^0-9.]/g, ''); calcularItem(index)"
+                                                    placeholder="0.00"
+                                                    required>
                                                 <span class="input-group-text">Kg</span>
                                             </div>
                                             <small class="text-danger" x-show="parseFloat(item.cantidad_kg) > parseFloat(item.stock_kg)">
