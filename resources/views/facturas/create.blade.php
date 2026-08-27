@@ -114,9 +114,9 @@
                                                         :class="monedaPago === 'VES' ? 'btn-success active' : 'btn-outline-secondary'"
                                                         @click="seleccionarMonedaPago('VES')">
                                                     <i class="bi bi-currency-exchange fs-5"></i>
-                                                    <span class="small">Bs</span>
+                                                    <span class="small">VES</span>
                                                     <span class="badge bg-light text-dark mt-1" x-show="monedaPago === 'VES'">✓</span>
-                                                    <small class="text-muted" x-show="monedaPago === 'BS'" x-text="'1 USD = ' + formatPrecio(tasaVES) + ' Bs'"></small>
+                                                    <small class="text-muted" x-show="monedaPago === 'VES'" x-text="'1 USD = ' + formatPrecio(tasaVES) + ' VES'"></small>
                                                 </button>
                                                 
                                                 <button type="button" 
@@ -322,7 +322,7 @@
     </div>
 </div>
                 <!-- Tasa de Cambio -->
-                    <div class="mb-3">
+                 {{--   <div class="mb-3">
                         <label class="form-label fw-bold">Tasa de Cambio del Día</label>
                         <div class="form-control bg-light">
                             <span class="text-muted small">
@@ -338,7 +338,7 @@
                                 @endif
                             </span>
                         </div>
-                    </div>
+                    </div> --}}
 <style>
     [x-cloak] { display: none !important; }
     .hover-bg-light:hover { background-color: #f8f9fa; }
@@ -360,6 +360,7 @@ document.addEventListener('alpine:init', () => {
         subtotal_neto: 0,
         total_impuesto: 0,
         total_general: 0,
+        numeroFactura: '{{ $siguienteNumero ?? 'FACT-00000001' }}',
         
         // =============================================
         // TASAS DE CAMBIO DESDE BD

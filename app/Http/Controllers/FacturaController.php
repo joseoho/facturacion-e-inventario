@@ -133,6 +133,8 @@ class FacturaController extends Controller
         ], [
             'moneda_pago.required' => 'Debes seleccionar la moneda de pago',
             'moneda_pago.in' => 'Moneda de pago no válida',
+            'productos.required' => 'Debes agregar al menos un producto',
+            'productos.min' => 'Debes agregar al menos un producto',
         ]);
 
         if ($validator->fails()) {
@@ -149,6 +151,11 @@ class FacturaController extends Controller
             // Obtener tasa de cambio según moneda de pago
             $tasaCambio = $this->obtenerTasaCambio($validated['moneda_pago']);
             
+            // Buscar o crear tasa de cambio en la tabla
+            $tasaCambioModel = TasaCambio::whereHas('moneda', function($q) use ($validated) {
+                $q->where('codigo', $validated['moneda_pago']);
+            })->latest('fecha')->first();
+            
             // Generar número de factura
             $numeroFactura = $this->generarNumeroFactura();
 
@@ -158,77 +165,78 @@ class FacturaController extends Controller
                 'cliente_id' => $validated['cliente_id'],
                 'user_id' => Auth::id(),
                 'moneda_id' => $validated['moneda_id'],
-                'moneda_pago' => $validated['moneda_pago'],
-                'tasa_cambio_usada' => $tasaCambio,
+                'tasa_cambio_id' => $tasaCambioModel ? $tasaCambioModel->id : null,
                 'subtotal_neto' => 0,
                 'total_impuesto' => 0,
                 'total' => 0,
-                'total_usd' => 0,
                 'estado' => 'pendiente',
                 'fecha_emision' => now(),
             ]);
 
             $subtotal = 0;
-            $impuesto = 0;
-            $subtotalUsd = 0;
-            $impuestoUsd = 0;
+            $totalImpuesto = 0;
+            $totalGeneral = 0;
 
             // Procesar productos
             foreach ($validated['productos'] as $item) {
                 $producto = Producto::find($item['producto_id']);
                 
                 if (!$producto) {
-                    throw new Exception("Producto no encontrado");
+                    throw new Exception("Producto no encontrado: ID {$item['producto_id']}");
                 }
                 
                 if ($producto->stock_kg < $item['cantidad_kg']) {
-                    throw new Exception("Stock insuficiente para: {$producto->nombre}");
+                    throw new Exception("Stock insuficiente para: {$producto->nombre}. Disponible: {$producto->stock_kg} Kg");
                 }
 
+                // Calcular valores
                 $cantidad = round($item['cantidad_kg'], 3);
-                $precioUsd = round($producto->precio_kg_usd ?? 0, 4);
-                $precioMoneda = round($precioUsd * $tasaCambio, 4);
-                $iva = $producto->iva_porcentaje ?? 0;
+                $precioKg = round($item['precio_kg'], 2); // Precio en moneda de pago
+                $impuestoPorcentaje = $producto->iva_porcentaje ?? 0;
                 
-                $subtotalLineaUsd = round($cantidad * $precioUsd, 4);
-                $impuestoLineaUsd = round($subtotalLineaUsd * ($iva / 100), 4);
-                $totalLineaUsd = round($subtotalLineaUsd + $impuestoLineaUsd, 4);
+                // Calcular neto (subtotal sin impuesto)
+                $neto = round($cantidad * $precioKg, 2);
                 
-                $subtotalLinea = round($cantidad * $precioMoneda, 4);
-                $impuestoLinea = round($subtotalLinea * ($iva / 100), 4);
-                $totalLinea = round($subtotalLinea + $impuestoLinea, 4);
+                // Calcular impuesto
+                $impuestoMonto = round($neto * ($impuestoPorcentaje / 100), 2);
+                
+                // Calcular total de la línea
+                $totalLinea = round($neto + $impuestoMonto, 2);
 
-                // Crear línea de factura
+                // Crear línea de factura con los campos correctos
                 FacturaLinea::create([
                     'factura_id' => $factura->id,
                     'producto_id' => $producto->id,
                     'cantidad_kg' => $cantidad,
-                    'precio_kg' => $precioMoneda,
-                    'precio_kg_usd' => $precioUsd,
-                    'precio_kg_moneda' => $precioMoneda,
-                    'impuesto_porcentaje' => $iva,
-                    'subtotal_linea' => $subtotalLinea,
-                    'subtotal_linea_usd' => $subtotalLineaUsd,
-                    'impuesto_linea' => $impuestoLinea,
-                    'impuesto_linea_usd' => $impuestoLineaUsd,
-                    'total_linea' => $totalLinea,
-                    'total_linea_usd' => $totalLineaUsd,
+                    'precio_kg' => $precioKg,
+                    'neto' => $neto,
+                    'impuesto_porcentaje' => $impuestoPorcentaje,
+                    'impuesto_monto' => $impuestoMonto,
+                    'total' => $totalLinea,
                 ]);
 
+                // Actualizar stock
                 $producto->decrement('stock_kg', $cantidad);
 
-                $subtotal += $subtotalLinea;
-                $impuesto += $impuestoLinea;
-                $subtotalUsd += $subtotalLineaUsd;
-                $impuestoUsd += $impuestoLineaUsd;
+                // Acumular totales
+                $subtotal += $neto;
+                $totalImpuesto += $impuestoMonto;
+                $totalGeneral += $totalLinea;
             }
 
-            // Actualizar totales
+            // Actualizar totales de la factura
             $factura->update([
-                'subtotal_neto' => round($subtotal, 4),
-                'total_impuesto' => round($impuesto, 4),
-                'total' => round($subtotal + $impuesto, 4),
-                'total_usd' => round($subtotalUsd + $impuestoUsd, 4),
+                'subtotal_neto' => round($subtotal, 2),
+                'total_impuesto' => round($totalImpuesto, 2),
+                'total' => round($totalGeneral, 2),
+            ]);
+
+            Log::info('Factura creada exitosamente:', [
+                'id' => $factura->id,
+                'numero' => $factura->numero,
+                'moneda_pago' => $validated['moneda_pago'],
+                'total' => $factura->total,
+                'tasa' => $tasaCambio
             ]);
 
             return response()->json([
@@ -241,13 +249,15 @@ class FacturaController extends Controller
 
     } catch (Exception $e) {
         Log::error('Error en store: ' . $e->getMessage());
+        Log::error('Trace: ' . $e->getTraceAsString());
+        
         return response()->json([
             'success' => false,
             'message' => $e->getMessage()
         ], 422);
+    
     }
     }
-
     public function show(Factura $factura)
     {
         try {
