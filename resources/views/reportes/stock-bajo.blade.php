@@ -78,12 +78,12 @@
             <button class="btn btn-primary" @click="imprimirReporte()">
                 <i class="bi bi-printer me-1"></i> Imprimir Reporte
             </button>
-            <button class="btn btn-success" @click="exportarExcel()">
+            {{-- <button class="btn btn-success" @click="exportarExcel()">
                 <i class="bi bi-file-excel me-1"></i> Exportar Excel
             </button>
             <a href="{{ route('reportes.inventario.pdf') }}" class="btn btn-danger" target="_blank">
                 <i class="bi bi-file-pdf me-1"></i> Exportar PDF
-            </a>
+            </a> --}}
             <button class="btn btn-outline-secondary" onclick="window.location.href='{{ route('reportes.inventario') }}'">
                 <i class="bi bi-arrow-counterclockwise me-1"></i> Actualizar
             </button>

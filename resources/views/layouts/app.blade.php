@@ -670,12 +670,12 @@
                             <i class="bi bi-graph-up"></i> Ventas Diarias
                         </a>
                     </li>
-                    <li class="nav-item">
+                    {{-- <li class="nav-item">
                         <a class="nav-link {{ request()->routeIs('reportes.facturas') ? 'active' : '' }}" 
                         href="{{ route('reportes.facturas') }}">
                             <i class="bi bi-receipt"></i> Facturas
                         </a>
-                    </li>
+                    </li> --}}
                     {{-- @endcan --}}
                 {{-- @endcan --}}
                 

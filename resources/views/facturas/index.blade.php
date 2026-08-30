@@ -99,11 +99,14 @@
                 </span>
             </h6>
             <div>
-                <button class="btn btn-sm btn-outline-secondary" onclick="alert('Función en desarrollo')">
+                {{-- <button class="btn btn-sm btn-outline-secondary" onclick="alert('Función en desarrollo')">
                     <i class="bi bi-file-excel me-1"></i> Excel
                 </button>
                 <button class="btn btn-sm btn-outline-secondary" onclick="alert('Función en desarrollo')">
                     <i class="bi bi-file-pdf me-1"></i> PDF
+                </button> --}}
+                <button class="btn btn-sm btn-outline-primary no-print" onclick="window.print()">
+                    <i class="bi bi-printer me-1"></i> Imprimir
                 </button>
             </div>
         </div>
@@ -221,7 +224,7 @@
 
         <!-- Paginación -->
         @if($facturas->hasPages())
-            <div class="mt-3 d-flex justify-content-between align-items-center">
+            <div class="mt-3 no-print">
                 <div class="text-muted small">
                     Mostrando {{ $facturas->firstItem() ?? 0 }} - {{ $facturas->lastItem() ?? 0 }} 
                     de {{ $facturas->total() }} registros
@@ -292,5 +295,85 @@ function pagarFactura(id) {
     });
 }
 </script>
+<style>
+    /* Estilos para impresión */
+@media print {
+    /* Ocultar todo lo que tenga clase no-print */
+    .no-print {
+        display: none !important;
+    }
+    
+    /* Ocultar botones de navegación y encabezado */
+    .navbar,
+    .navbar-nav,
+    .nav,
+    .nav-link,
+    .navbar-brand,
+    .navbar-toggler,
+    .btn-group,
+    .btn,
+    .pagination,
+    .card .card-body form,
+    .card .card-body .d-flex.gap-2,
+    .page-link,
+    .page-item,
+    .breadcrumb,
+    .header,
+    .main-header,
+    .app-header,
+    .top-nav,
+    .navigation,
+    .menu,
+    .sidebar,
+    .nav-menu,
+    .header-menu,
+    .top-menu,
+    .main-nav,
+    .site-header,
+    .page-header,
+    .print-header {
+        display: none !important;
+    }
+    
+    /* Mostrar solo la tabla */
+    .table-responsive {
+        overflow: visible !important;
+    }
+    
+    .table {
+        width: 100% !important;
+        font-size: 12px !important;
+    }
+    
+    .table-bordered {
+        border: 1px solid #000 !important;
+    }
+    
+    .table-bordered th,
+    .table-bordered td {
+        border: 1px solid #000 !important;
+    }
+    
+    /* Fondo blanco */
+    body {
+        background: white !important;
+    }
+    
+    .card {
+        border: none !important;
+        box-shadow: none !important;
+    }
+    
+    .card-body {
+        padding: 0 !important;
+    }
+    
+    /* Ocultar columna de acciones */
+    .table thead tr th:last-child,
+    .table tbody tr td:last-child {
+        display: none !important;
+    }
+}
+</style>
 @endpush
 @endsection
