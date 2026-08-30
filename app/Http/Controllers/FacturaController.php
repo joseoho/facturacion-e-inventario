@@ -128,8 +128,9 @@ class FacturaController extends Controller
             'moneda_pago' => 'required|in:USD,COP,VES',
             'productos' => 'required|array|min:1',
             'productos.*.producto_id' => 'required|exists:productos,id',
-            // 'productos.*.cantidad_kg' => 'required|numeric|min:0.001',
-            'productos.*.cantidad_kg' => 'required|numeric|min:0',
+            'productos.*.cantidad_kg' => 'required|regex:/^[0-9.\-#]+$/',
+            // 'productos.*.cantidad_kg' => 'required|numeric|min:0',
+            // 'productos.*.cantidad_kg' => 'required|numeric|min:0|max:9999.999|regex:/^\d+(\.\d{1,3})?$/',
             'productos.*.precio_kg' => 'required|numeric|min:0',
         ], [
             'moneda_pago.required' => 'Debes seleccionar la moneda de pago',

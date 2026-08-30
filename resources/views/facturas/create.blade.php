@@ -226,7 +226,7 @@
                             <thead class="table-light">
                                 <tr>
                                     <th>Producto</th>
-                                    <th style="width: 120px;">Cantidad (Kg)</th>
+                                    <th style="width: 120px;">Cantidad</th>
                                     <th style="width: 120px;" class="text-end">Precio</th>
                                     <th style="width: 80px;" class="text-center">IVA</th>
                                     <th style="width: 120px;" class="text-end">Total</th>
@@ -499,7 +499,7 @@ document.addEventListener('alpine:init', () => {
                 sku: producto.sku || 'N/A',
                 precio_kg_usd: precioUsd,
                 precio_kg: precioMoneda,
-                cantidad_kg: 0.5,
+                cantidad_kg: '',
                 iva_porcentaje: parseFloat(producto.iva_porcentaje) || 0,
                 total_linea: 0,
                 stock_kg: parseFloat(producto.stock_kg) || 0
@@ -524,10 +524,11 @@ document.addEventListener('alpine:init', () => {
             const stock = parseFloat(item.stock_kg) || 0;
             
             // Validar cantidad mínima
-            if (cantidad < 0.001) {
-                cantidad = 0.001;
-                item.cantidad_kg = cantidad;
-            }
+                if (!cantidad || cantidad === 0 || isNaN(cantidad)) {
+                    item.total_linea = 0;
+                    this.recalcularTodo();
+                    return;
+                }
             
             // Validar stock
             if (cantidad > stock && stock > 0) {
