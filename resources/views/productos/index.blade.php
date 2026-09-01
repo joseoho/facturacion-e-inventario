@@ -6,7 +6,7 @@
 @section('content')
 <div class="stat-card">
     <!-- Filtros y búsqueda -->
-    <div class="row mb-4">
+    <div class="row mb-4 no-print">
         <div class="col-md-8">
             <form action="{{ route('productos.index') }}" method="GET" class="row g-3">
                 <div class="col-md-4">
@@ -48,16 +48,20 @@
                     </div>
                 </div>
                 <div class="col-md-1">
-                    <a href="{{ route('productos.index') }}" class="btn btn-secondary" title="Limpiar filtros">
+                    <a href="{{ route('productos.index') }}" class="btn btn-secondary no-print" title="Limpiar filtros">
                         <i class="bi bi-eraser"></i>
                     </a>
                 </div>
             </form>
         </div>
         <div class="col-md-4 text-end">
-            <a href="{{ route('productos.create') }}" class="btn btn-success">
+            <a href="{{ route('productos.create') }}" class="btn btn-success no-print">
                 <i class="bi bi-plus-circle me-1"></i> Nuevo Producto
             </a>
+            <button type="button" class="btn btn-primary me-2 no-print" onclick="window.print()">
+                <i class="bi bi-printer me-1"></i> Imprimir
+            </button>
+             
         </div>
     </div>
 
@@ -73,8 +77,7 @@
                     <th>Precio USD</th>
                     <th>IVA</th>
                     <th>Estado</th>
-                    <th>Acciones</th>
-                </tr>
+                    <th class="no-print">Acciones</th>
             </thead>
             <tbody>
                 @forelse($productos as $producto)
@@ -107,7 +110,7 @@
                             @endif
                         </td>
                         <td>
-                            <div class="btn-group btn-group-sm">
+                             <div class="btn-group btn-group-sm">
                                 <a href="{{ route('productos.show', $producto) }}" class="btn btn-info" title="Ver">
                                     <i class="bi bi-eye"></i>
                                 </a>
@@ -141,10 +144,14 @@
                 @endforelse
             </tbody>
         </table>
+        <!-- Total de registros para impresión -->
+<div class="print-total">
+    <p>Total de productos: {{ $productos->total() }}</p>
+    <p>Fecha de impresión: {{ now()->format('d/m/Y H:i:s') }}</p>
+</div>
     </div>
-
     <!-- Paginación -->
-    <div class="d-flex justify-content-between align-items-center mt-3">
+    <div class="d-flex justify-content-between align-items-center mt-3 no-print">
         <div>
             Mostrando {{ $productos->firstItem() ?? 0 }} - {{ $productos->lastItem() ?? 0 }} 
             de {{ $productos->total() }} productos
@@ -163,5 +170,109 @@
         }
     }
 </script>
+<!-- Estilos para impresión -->
+
+<style>
+    /* Ocultar en pantalla lo que solo es para impresión */
+    .print-header {
+        display: none;
+    }
+    .print-total {
+        display: none;
+    }
+
+    /* Estilos para impresión */
+    @media print {
+        /* Ocultar todo lo que tenga clase no-print */
+        .no-print {
+            display: none !important;
+        }
+        
+        /* Ocultar botones de navegación y encabezado */
+        .navbar,
+        .navbar-nav,
+        .nav,
+        .nav-link,
+        .navbar-brand,
+        .navbar-toggler,
+        .btn-group,
+        .btn,
+        .pagination,
+        .card .card-body form,
+        .card .card-body .d-flex.gap-2,
+        .page-link,
+        .page-item,
+        .breadcrumb,
+        .header,
+        .main-header,
+        .app-header,
+        .top-nav,
+        .navigation,
+        .menu,
+        .sidebar,
+        .nav-menu,
+        .header-menu,
+        .top-menu,
+        .main-nav,
+        .site-header,
+        .page-header {
+            display: none !important;
+        }
+        
+        /* Mostrar encabezado de impresión */
+        .print-header {
+            display: block !important;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .print-total {
+            display: block !important;
+            margin-top: 10px;
+            text-align: right;
+            font-weight: bold;
+        }
+        
+        /* Mostrar solo la tabla */
+        .table-responsive {
+            overflow: visible !important;
+        }
+        
+        .table {
+            width: 100% !important;
+            font-size: 12px !important;
+        }
+        
+        .table-bordered {
+            border: 1px solid #000 !important;
+        }
+        
+        .table-bordered th,
+        .table-bordered td {
+            border: 1px solid #000 !important;
+        }
+        
+        /* Fondo blanco */
+        body {
+            background: white !important;
+        }
+        
+        .stat-card {
+            border: none !important;
+            box-shadow: none !important;
+            padding: 0 !important;
+        }
+        
+        .card-body {
+            padding: 0 !important;
+        }
+        
+        /* Ocultar columna de acciones */
+        .table thead tr th:last-child,
+        .table tbody tr td:last-child {
+            display: none !important;
+        }
+    }
+</style>
 @endpush
 @endsection

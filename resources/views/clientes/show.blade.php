@@ -121,15 +121,15 @@
                     </div>
                     <div class="mb-3">
                         <label class="text-muted fw-semibold">Total Facturado:</label>
-                        <h4 class="fw-bold text-primary">${{ number_format($stats['total_facturado'], 2) }}</h4>
+                        <h4 class="fw-bold text-primary">{{ number_format($stats['total_facturado'], 2) }}</h4>
                     </div>
                     <div class="mb-3">
                         <label class="text-muted fw-semibold">Total Pagado:</label>
-                        <h4 class="fw-bold text-success">${{ number_format($stats['total_pagado'], 2) }}</h4>
+                        <h4 class="fw-bold text-success">{{ number_format($stats['total_pagado'], 2) }}</h4>
                     </div>
                     <div>
                         <label class="text-muted fw-semibold">Saldo Pendiente:</label>
-                        <h4 class="fw-bold text-danger">${{ number_format($stats['saldo_pendiente'], 2) }}</h4>
+                        <h4 class="fw-bold text-danger">{{ number_format($stats['saldo_pendiente'], 2) }}</h4>
                     </div>
                 </div>
             </div>
@@ -150,6 +150,7 @@
                                         <th># Factura</th>
                                         <th>Fecha</th>
                                         <th>Total</th>
+                                        <th>Tipo de Pago</th>
                                         <th>Estado</th>
                                     </tr>
                                 </thead>
@@ -158,7 +159,8 @@
                                         <tr>
                                             <td>{{ $factura->id }}</td>
                                             <td>{{ $factura->created_at->format('d/m/Y') }}</td>
-                                            <td>${{ number_format($factura->total, 2) }}</td>
+                                            <td>{{ number_format($factura->total, 2) }}</td>
+                                            <td>{{ ucfirst($factura->moneda->codigo) }}</td>
                                             <td>
                                                 <span class="badge bg-{{ $factura->estado === 'pagada' ? 'success' : 'warning' }}">
                                                     {{ $factura->estado }}

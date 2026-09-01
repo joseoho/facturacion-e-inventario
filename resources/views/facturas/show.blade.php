@@ -7,15 +7,15 @@
 <div class="stat-card">
     <!-- Botones de Acción -->
     <div class="d-flex flex-wrap gap-2 mb-4">
-        <a href="{{ route('facturas.index') }}" class="btn btn-outline-secondary">
-            <i class="bi bi-arrow-left me-1"></i> Volver
+        <a href="{{ route('facturas.index') }}" class="btn btn-secondary no-print">
+            <i class="bi bi-arrow-left me-2"></i> Volver
         </a>
-        <a href="{{ route('facturas.pdf', $factura) }}" class="btn btn-primary" target="_blank">
+        {{-- <a href="{{ route('facturas.pdf', $factura) }}" class="btn btn-primary" target="_blank">
             <i class="bi bi-file-pdf me-1"></i> PDF
-        </a>
-        <a href="{{ route('facturas.imprimir', $factura) }}" class="btn btn-success" target="_blank">
-            <i class="bi bi-printer me-1"></i> Imprimir
-        </a>
+        </a> --}}
+        <button class="btn btn-outline-secondary no-print" onclick="window.print()">
+            <i class="bi bi-printer me-2"></i> Imprimir
+        </button>
         
         @if($factura->estado === 'pendiente')
             <a href="{{ route('facturas.edit', $factura) }}" class="btn btn-warning">
@@ -221,5 +221,106 @@
         });
     }
 </script>
+<style>
+    /* Estilos para impresión */
+    @media print {
+        /* Ocultar todo lo que tenga clase no-print */
+        .no-print {
+            display: none !important;
+        }
+        
+        /* Ocultar navegación, header, botones */
+        .navbar,
+        .navbar-nav,
+        .nav,
+        .nav-link,
+        .navbar-brand,
+        .navbar-toggler,
+        .btn-group,
+        .btn,
+        .pagination,
+        .breadcrumb,
+        .header,
+        .main-header,
+        .app-header,
+        .top-nav,
+        .navigation,
+        .menu,
+        .sidebar,
+        .nav-menu,
+        .header-menu,
+        .top-menu,
+        .main-nav,
+        .site-header,
+        .page-header,
+        .card .card-body .d-flex.gap-2,
+        .card-header .d-flex.justify-content-between,
+        .card-footer,
+        .action-buttons {
+            display: none !important;
+        }
+        
+        /* Mostrar solo el contenido principal */
+        .table-responsive {
+            overflow: visible !important;
+        }
+        
+        .table {
+            width: 100% !important;
+            font-size: 12px !important;
+        }
+        
+        .table-bordered {
+            border: 1px solid #000 !important;
+        }
+        
+        .table-bordered th,
+        .table-bordered td {
+            border: 1px solid #000 !important;
+        }
+        
+        /* Fondo blanco */
+        body {
+            background: white !important;
+        }
+        
+        .card {
+            border: none !important;
+            box-shadow: none !important;
+        }
+        
+        .card-body {
+            padding: 0 !important;
+        }
+        
+        /* Ocultar columna de acciones si existe */
+        .table thead tr th:last-child,
+        .table tbody tr td:last-child {
+            display: none !important;
+        }
+        
+        /* Mostrar encabezado de impresión */
+        .print-header {
+            display: block !important;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .print-total {
+            display: block !important;
+            margin-top: 10px;
+            text-align: right;
+            font-weight: bold;
+        }
+    }
+    
+    /* Ocultar en pantalla lo que solo es para impresión */
+    .print-header {
+        display: none;
+    }
+    .print-total {
+        display: none;
+    }
+</style>
 @endpush
 @endsection

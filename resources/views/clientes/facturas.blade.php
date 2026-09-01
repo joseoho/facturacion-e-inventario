@@ -23,7 +23,7 @@
                     <th>ID</th>
                     <th>Fecha</th>
                     <th>Total</th>
-                    <th>Estado</th>
+                    <th>Tipo Moneda</th>
                     <th>Acciones</th>
                 </tr>
             </thead>
@@ -32,7 +32,8 @@
                     <tr>
                         <td>{{ $factura->id }}</td>
                         <td>{{ $factura->created_at->format('d/m/Y H:i') }}</td>
-                        <td>${{ number_format($factura->total, 2) }}</td>
+                        <td>{{ number_format($factura->total, 2) }}</td>
+                        <td>{{ $factura->moneda->codigo }}</td>
                         <td>
                             <span class="badge bg-{{ $factura->estado === 'pagada' ? 'success' : 'warning' }}">
                                 {{ $factura->estado }}

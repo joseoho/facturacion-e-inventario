@@ -64,7 +64,7 @@
     </div>
 
     <!-- 🚀 BOTÓN DE ACTUALIZACIÓN MASIVA -->
-    <div class="row g-3 mb-3">
+    <div class="row g-3 mb-3 no-print">
         <div class="col-12">
             <div class="stat-card bg-primary bg-opacity-10 border border-primary border-opacity-25">
                 <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
@@ -119,7 +119,7 @@
     </div>
 
     <!-- Filtros y Acciones -->
-    <div class="stat-card mb-3">
+    <div class="stat-card mb-3 no-print">
         <form method="GET" action="{{ route('tasas.index') }}" class="row g-2 align-items-end" id="filterForm">
             <div class="col-12 col-md-2">
                 <label class="form-label">Buscar</label>
@@ -182,7 +182,7 @@
             </h6>
             <div class="d-flex gap-2 flex-wrap">
                 <!-- Selector de registros por página -->
-                <div class="d-flex align-items-center gap-2">
+                <div class="d-flex align-items-center gap-2 no-print">
                     <span class="text-muted small">Mostrar:</span>
                     <select name="per_page" class="form-select form-select-sm" 
                             style="width: auto;" 
@@ -197,9 +197,9 @@
                 <a href="{{ route('tasas.create') }}" class="btn btn-success btn-sm">
                     <i class="bi bi-plus-lg me-1"></i> Nueva Tasa
                 </a>
-                <button class="btn btn-sm btn-outline-secondary" @click="exportarCSV()">
-                    <i class="bi bi-file-earmark-spreadsheet"></i> CSV
-                </button>
+                <button type="button" class="btn btn-primary me-2 no-print" onclick="window.print()">
+                <i class="bi bi-printer me-1"></i> Imprimir
+            </button>
             </div>
         </div>
 
@@ -244,7 +244,7 @@
                             </a>
                         </th>
                         <th style="width: 15%;">Registrado por</th>
-                        <th style="width: 15%;" class="text-center">Acciones</th>
+                        <th style="width: 15%;" class="text-center no-print">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -315,11 +315,16 @@
                     @endforelse
                 </tbody>
             </table>
+            <!-- Total de registros para impresión -->
+            <div class="print-total">
+                <p>Total de tasas de cambio: {{ $tasasCambio->total() }}</p>
+                <p>Fecha de impresión: {{ now()->format('d/m/Y H:i:s') }}</p>
+            </div>
         </div>
 
         <!-- Paginación Mejorada -->
         @if($tasasCambio->hasPages())
-            <div class="mt-3">
+            <div class="mt-3 no-print">
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                     <div class="text-muted small">
                         Mostrando 
@@ -332,7 +337,7 @@
                         <span class="text-muted">(Página {{ $tasasCambio->currentPage() }} de {{ $tasasCambio->lastPage() }})</span>
                     </div>
                     
-                    <div class="d-flex align-items-center gap-2">
+                    <div class="d-flex align-items-center gap-2 no-print">
                         <!-- Navegación rápida -->
                         <div class="d-flex gap-1">
                             <a href="{{ $tasasCambio->url(1) }}" 
@@ -380,7 +385,7 @@
                 </div>
                 
                 <!-- Paginación Bootstrap -->
-                <div class="d-flex justify-content-center mt-2">
+                <div class="d-flex justify-content-center mt-2 no-print">
                     {{ $tasasCambio->links('pagination::bootstrap-5') }}
                 </div>
             </div>
@@ -541,5 +546,107 @@
         }
     }
 </script>
+<style>
+    /* Ocultar en pantalla lo que solo es para impresión */
+    .print-header {
+        display: none;
+    }
+    .print-total {
+        display: none;
+    }
+
+    /* Estilos para impresión */
+    @media print {
+        /* Ocultar todo lo que tenga clase no-print */
+        .no-print {
+            display: none !important;
+        }
+        
+        /* Ocultar botones de navegación y encabezado */
+        .navbar,
+        .navbar-nav,
+        .nav,
+        .nav-link,
+        .navbar-brand,
+        .navbar-toggler,
+        .btn-group,
+        .btn,
+        .pagination,
+        .card .card-body form,
+        .card .card-body .d-flex.gap-2,
+        .page-link,
+        .page-item,
+        .breadcrumb,
+        .header,
+        .main-header,
+        .app-header,
+        .top-nav,
+        .navigation,
+        .menu,
+        .sidebar,
+        .nav-menu,
+        .header-menu,
+        .top-menu,
+        .main-nav,
+        .site-header,
+        .page-header {
+            display: none !important;
+        }
+        
+        /* Mostrar encabezado de impresión */
+        .print-header {
+            display: block !important;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .print-total {
+            display: block !important;
+            margin-top: 10px;
+            text-align: right;
+            font-weight: bold;
+        }
+        
+        /* Mostrar solo la tabla */
+        .table-responsive {
+            overflow: visible !important;
+        }
+        
+        .table {
+            width: 100% !important;
+            font-size: 12px !important;
+        }
+        
+        .table-bordered {
+            border: 1px solid #000 !important;
+        }
+        
+        .table-bordered th,
+        .table-bordered td {
+            border: 1px solid #000 !important;
+        }
+        
+        /* Fondo blanco */
+        body {
+            background: white !important;
+        }
+        
+        .stat-card {
+            border: none !important;
+            box-shadow: none !important;
+            padding: 0 !important;
+        }
+        
+        .card-body {
+            padding: 0 !important;
+        }
+        
+        /* Ocultar columna de acciones */
+        .table thead tr th:last-child,
+        .table tbody tr td:last-child {
+            display: none !important;
+        }
+    }
+</style>
 @endpush
 @endsection
