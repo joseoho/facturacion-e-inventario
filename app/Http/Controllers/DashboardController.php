@@ -14,135 +14,169 @@ class DashboardController extends Controller
     /**
      * Mostrar el dashboard con métricas y gráficos
      */
-    public function index()
+        /**
+     * Dashboard principal.
+     *
+     * Nota arquitectónica: cada método privado lanza excepciones si algo
+     * falla. NO las atrapamos aquí — el handler global de Laravel las
+     * registrará y mostrará la página de error. Es preferible que el
+     * dashboard falle ruidosamente a que muestre "0 ventas" silenciosamente
+     * porque una query tiene un typo.
+     *
+     * Si en el futuro se necesita resiliencia parcial (ej. dashboard se
+     * muestra aunque falle 1 widget), se implementará con un patrón
+     * explícito de "safe call" que registre la métrica fallida en un
+     * array de warnings visible en la vista, NO con try/catch ciego.
+     */
+       public function index()
     {
-        // Inicializar todas las variables con valores por defecto
-        $metricas = $this->getMetricasDefault();
-        $alertasStock = collect();
-        $ventasSemana = ['labels' => [], 'data' => []];
-        $productosTop = collect();
-        $ventasCategoria = collect();
-        $facturasRecientes = collect();
-
-        try {
-            // Métricas principales
-            $metricas = $this->getMetricasPrincipales();
-        } catch (\Exception $e) {
-            Log::error('Error en getMetricasPrincipales: ' . $e->getMessage());
-        }
-
-        try {
-            // Alertas de stock mínimo (< 5.000 Kg)
-            $alertasStock = $this->getAlertasStock();
-        } catch (\Exception $e) {
-            Log::error('Error en getAlertasStock: ' . $e->getMessage());
-        }
-
-        try {
-            // Datos para gráfico de ventas de la semana
-            $ventasSemana = $this->getVentasSemana();
-        } catch (\Exception $e) {
-            Log::error('Error en getVentasSemana: ' . $e->getMessage());
-        }
-
-        try {
-            // Productos más vendidos del mes
-            $productosTop = $this->getProductosTop();
-        } catch (\Exception $e) {
-            Log::error('Error en getProductosTop: ' . $e->getMessage());
-        }
-
-        try {
-            // Ventas por categoría
-            $ventasCategoria = $this->getVentasCategoria();
-        } catch (\Exception $e) {
-            Log::error('Error en getVentasCategoria: ' . $e->getMessage());
-        }
-
-        try {
-            // Facturas recientes
-            $facturasRecientes = Factura::with(['cliente', 'moneda'])
-                ->latest()
-                ->limit(10)
-                ->get();
-        } catch (\Exception $e) {
-            Log::error('Error al obtener facturas recientes: ' . $e->getMessage());
-        }
-
-        // Verificar que todas las variables existan antes de pasar a la vista
         return view('dashboard.index', [
-            'metricas' => $metricas,
-            'alertasStock' => $alertasStock,
-            'ventasSemana' => $ventasSemana,
-            'productosTop' => $productosTop,
-            'ventasCategoria' => $ventasCategoria,
-            'facturasRecientes' => $facturasRecientes
+            'metricas'             => $this->getMetricasPrincipales(),
+            'desgloseMesAnterior'  => $this->getDesgloseMesAnterior(),
+            'alertasStock'         => $this->getAlertasStock(),
+            'ventasSemana'         => $this->getVentasSemana(),
+            'productosTop'         => $this->getProductosTop(),
+            'ventasCategoria'      => $this->getVentasCategoria(),
+            'facturasRecientes'    => Factura::with(['cliente:id,nombre', 'moneda:id,codigo,simbolo'])
+                ->latest('id')
+                ->limit(10)
+                ->get(),
         ]);
     }
-
     /**
      * Obtener métricas principales
      */
-    private function getMetricasPrincipales()
+      /**
+     * Métricas principales del dashboard.
+     *
+     * Optimizaciones aplicadas:
+     *  - whereMonth/whereYear → rangos indexados (usa índice de fecha_emision).
+     *  - Se unifican queries del mismo tipo con selectRaw + sum(case when ...).
+     *  - Se usan constantes Factura::ESTADO_* en vez de strings mágicos.
+     */
+    private function getMetricasPrincipales(): array
     {
-        // Ventas del día
-        $ventasHoy = Factura::whereDate('fecha_emision', today())
-            ->where('estado', 'pagada')
-            ->sum('total');
+        $hoy           = now()->startOfDay();
+        $finHoy        = now()->endOfDay();
+        $inicioMes     = now()->startOfMonth();
+        $inicioMesAnt  = now()->subMonthNoOverflow()->startOfMonth();
+        $finMesAnt     = now()->subMonthNoOverflow()->endOfMonth();
 
-        // Ventas del mes
-        $ventasMes = Factura::whereMonth('fecha_emision', now()->month)
-            ->whereYear('fecha_emision', now()->year)
-            ->where('estado', 'pagada')
-            ->sum('total');
+        // ============================================================
+        // FACTURAS: ventas hoy, ventas mes, ventas mes anterior,
+        // facturas hoy y pendientes. Todo en 1 query con CASE WHEN.
+        // ============================================================
+        $metricasFacturas = Factura::query()
+            ->selectRaw('
+                COALESCE(SUM(CASE WHEN estado = ? AND fecha_emision BETWEEN ? AND ? THEN total ELSE 0 END), 0) as ventas_hoy,
+                COALESCE(SUM(CASE WHEN estado = ? AND fecha_emision BETWEEN ? AND ? THEN total ELSE 0 END), 0) as ventas_mes,
+                COALESCE(SUM(CASE WHEN estado = ? AND fecha_emision BETWEEN ? AND ? THEN total ELSE 0 END), 0) as ventas_mes_anterior,
+                COUNT(CASE WHEN fecha_emision BETWEEN ? AND ? THEN 1 END) as facturas_hoy,
+                COUNT(CASE WHEN estado = ? THEN 1 END) as facturas_pendientes
+            ', [
+                Factura::ESTADO_PAGADA, $hoy, $finHoy,
+                Factura::ESTADO_PAGADA, $inicioMes, $finHoy,
+                Factura::ESTADO_PAGADA, $inicioMesAnt, $finMesAnt,
+                $hoy, $finHoy,
+                Factura::ESTADO_PENDIENTE,
+            ])
+            ->first();
 
-        // Facturas hoy
-        $facturasHoy = Factura::whereDate('fecha_emision', today())->count();
+        $ventasHoy          = (float) $metricasFacturas->ventas_hoy;
+        $ventasMes          = (float) $metricasFacturas->ventas_mes;
+        $ventasMesAnterior  = (float) $metricasFacturas->ventas_mes_anterior;
 
-        // Clientes nuevos hoy
-        $clientesNuevos = Cliente::whereDate('created_at', today())->count();
+        // ============================================================
+        // PRODUCTOS: sin stock, stock bajo, total activos. 1 query.
+        // ============================================================
+        $metricasProductos = Producto::query()
+            ->selectRaw('
+                COUNT(CASE WHEN stock_kg <= 0 THEN 1 END) as sin_stock,
+                COUNT(CASE WHEN stock_kg > 0 AND stock_kg <= 5 THEN 1 END) as stock_bajo,
+                COUNT(CASE WHEN activo = 1 THEN 1 END) as total_activos
+            ')
+            ->first();
 
-        // Productos sin stock
-        $productosSinStock = Producto::where('stock_kg', '<=', 0)->count();
+        // ============================================================
+        // CLIENTES: nuevos hoy y total activos. 1 query.
+        // ============================================================
+        $metricasClientes = Cliente::query()
+            ->selectRaw('
+                COUNT(CASE WHEN created_at BETWEEN ? AND ? THEN 1 END) as nuevos_hoy,
+                COUNT(CASE WHEN activo = 1 THEN 1 END) as total_activos
+            ', [$hoy, $finHoy])
+            ->first();
 
-        // Productos con stock bajo (< 5 Kg)
-        $productosStockBajo = Producto::where('stock_kg', '>', 0)
-            ->where('stock_kg', '<=', 5)
-            ->count();
-
-        // Total de productos activos
-        $totalProductos = Producto::where('activo', true)->count();
-
-        // Clientes totales
-        $totalClientes = Cliente::where('activo', true)->count();
-
-        // Facturas pendientes
-        $facturasPendientes = Factura::where('estado', 'pendiente')->count();
-
-        // Crecimiento de ventas vs mes anterior
-        $ventasMesAnterior = Factura::whereMonth('fecha_emision', now()->subMonth()->month)
-            ->whereYear('fecha_emision', now()->subMonth()->year)
-            ->where('estado', 'pagada')
-            ->sum('total');
-
-        $crecimiento = $ventasMesAnterior > 0 
-            ? (($ventasMes - $ventasMesAnterior) / $ventasMesAnterior) * 100 
+        // ============================================================
+        // Crecimiento vs mes anterior
+        // ============================================================
+        $crecimiento = $ventasMesAnterior > 0
+            ? (($ventasMes - $ventasMesAnterior) / $ventasMesAnterior) * 100
             : 0;
 
         return [
-            'ventas_hoy' => $ventasHoy,
-            'ventas_mes' => $ventasMes,
-            'facturas_hoy' => $facturasHoy,
-            'clientes_nuevos' => $clientesNuevos,
-            'productos_sin_stock' => $productosSinStock,
-            'productos_stock_bajo' => $productosStockBajo,
-            'total_productos' => $totalProductos,
-            'total_clientes' => $totalClientes,
-            'facturas_pendientes' => $facturasPendientes,
-            'crecimiento' => round($crecimiento, 1),
+            'ventas_hoy'           => $ventasHoy,
+            'ventas_mes'           => $ventasMes,
+            'facturas_hoy'         => (int) $metricasFacturas->facturas_hoy,
+            'clientes_nuevos'      => (int) $metricasClientes->nuevos_hoy,
+            'productos_sin_stock'  => (int) $metricasProductos->sin_stock,
+            'productos_stock_bajo' => (int) $metricasProductos->stock_bajo,
+            'total_productos'      => (int) $metricasProductos->total_activos,
+            'total_clientes'       => (int) $metricasClientes->total_activos,
+            'facturas_pendientes'  => (int) $metricasFacturas->facturas_pendientes,
+            'crecimiento'          => round($crecimiento, 1),
         ];
     }
 
+        /**
+     * Desglose de facturación del mes anterior por estado.
+     *
+     * Devuelve un array con:
+     *   - pagadas:    ['cantidad' => N, 'total' => X]
+     *   - pendientes: ['cantidad' => N, 'total' => X]
+     *   - anuladas:   ['cantidad' => N, 'total' => X]
+     *
+     * Esto permite mostrar al usuario un panorama completo del mes
+     * cerrado, no solo las ventas efectivas.
+     */
+    private function getDesgloseMesAnterior(): array
+    {
+        $inicioMesAnt    = now()->subMonthNoOverflow()->startOfMonth();
+        $inicioMesActual = now()->startOfMonth();
+
+        // 1 query con CASE WHEN por estado → más eficiente que 3 queries
+        $r = Factura::query()
+            ->selectRaw('
+                COUNT(CASE WHEN estado = ? THEN 1 END) as pag_cant,
+                COALESCE(SUM(CASE WHEN estado = ? THEN total ELSE 0 END), 0) as pag_total,
+                COUNT(CASE WHEN estado = ? THEN 1 END) as pen_cant,
+                COALESCE(SUM(CASE WHEN estado = ? THEN total ELSE 0 END), 0) as pen_total,
+                COUNT(CASE WHEN estado = ? THEN 1 END) as anu_cant,
+                COALESCE(SUM(CASE WHEN estado = ? THEN total ELSE 0 END), 0) as anu_total
+            ', [
+                Factura::ESTADO_PAGADA,    Factura::ESTADO_PAGADA,
+                Factura::ESTADO_PENDIENTE, Factura::ESTADO_PENDIENTE,
+                Factura::ESTADO_ANULADA,   Factura::ESTADO_ANULADA,
+            ])
+            ->where('fecha_emision', '>=', $inicioMesAnt)
+            ->where('fecha_emision', '<',  $inicioMesActual)
+            ->first();
+
+        return [
+            'pagadas' => [
+                'cantidad' => (int)   $r->pag_cant,
+                'total'    => (float) $r->pag_total,
+            ],
+            'pendientes' => [
+                'cantidad' => (int)   $r->pen_cant,
+                'total'    => (float) $r->pen_total,
+            ],
+            'anuladas' => [
+                'cantidad' => (int)   $r->anu_cant,
+                'total'    => (float) $r->anu_total,
+            ],
+        ];
+    }
     /**
      * Métricas por defecto en caso de error
      */
@@ -212,29 +246,44 @@ class DashboardController extends Controller
     /**
      * Obtener datos de ventas de la semana para gráfico
      */
-    private function getVentasSemana()
+        /**
+     * Ventas de los últimos 7 días para el gráfico.
+     *
+     * ANTES: 7 queries en loop (una por día).
+     * AHORA: 1 query con GROUP BY, luego se rellena en PHP.
+     *
+     * Esto reduce 7 round-trips a MySQL a 1, y además permite que el
+     * optimizador use el índice compuesto (estado, fecha_emision).
+     */
+    private function getVentasSemana(): array
     {
-        $labels = [];
-        $data = [];
+        $desde = now()->subDays(6)->startOfDay();
+        $hasta = now()->endOfDay();
 
-        // Últimos 7 días
+        // 1 sola query agrupada por día
+        $ventasPorDia = Factura::query()
+            ->selectRaw('DATE(fecha_emision) as dia, SUM(total) as total')
+            ->where('estado', Factura::ESTADO_PAGADA)
+            ->whereBetween('fecha_emision', [$desde, $hasta])
+            ->groupBy('dia')
+            ->pluck('total', 'dia'); // colección: ['2026-09-15' => 123.45, ...]
+
+        // Rellenar días sin ventas con 0 (para que el gráfico no tenga huecos)
+        $labels = [];
+        $data   = [];
+
         for ($i = 6; $i >= 0; $i--) {
-            $fecha = now()->subDays($i);
+            $fecha    = now()->subDays($i);
+            $clave    = $fecha->toDateString(); // 'Y-m-d'
             $labels[] = $fecha->format('d/m');
-            
-            $total = Factura::whereDate('fecha_emision', $fecha)
-                ->where('estado', 'pagada')
-                ->sum('total');
-            
-            $data[] = round($total, 2);
+            $data[]   = round((float) ($ventasPorDia[$clave] ?? 0), 2);
         }
 
         return [
             'labels' => $labels,
-            'data' => $data,
+            'data'   => $data,
         ];
     }
-
     /**
      * Obtener productos más vendidos del mes
      */

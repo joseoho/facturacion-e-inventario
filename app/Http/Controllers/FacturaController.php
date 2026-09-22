@@ -179,18 +179,45 @@ class FacturaController extends Controller
             $totalImpuesto = 0;
             $totalGeneral = 0;
 
-            // Procesar productos
-            foreach ($validated['productos'] as $item) {
-                $producto = Producto::find($item['producto_id']);
+            // ============================================================
+            // 🔒 ORDENAR ITEMS POR producto_id PARA EVITAR DEADLOCKS
+            // ============================================================
+            // Si dos transacciones bloquean los mismos productos en distinto
+            // orden (A→B y B→A), MySQL puede detectar un deadlock y abortar
+            // una. Ordenar siempre por producto_id garantiza un orden
+            // consistente de adquisición de locks.
+            $items = collect($validated['productos'])
+                ->sortBy('producto_id')
+                ->values()
+                ->all();
+
+            foreach ($items as $item) {
+                // ========================================================
+                // 🔒 LOCK PESIMISTA (SELECT ... FOR UPDATE)
+                // ========================================================
+                // Bloquea la fila del producto dentro de la transacción
+                // hasta que se haga COMMIT o ROLLBACK. Esto elimina la
+                // race condition: dos requests concurrentes NO podrán
+                // leer el mismo stock al mismo tiempo.
+                $producto = Producto::where('id', $item['producto_id'])
+                    ->lockForUpdate()
+                    ->first();
                 
                 if (!$producto) {
                     throw new Exception("Producto no encontrado: ID {$item['producto_id']}");
                 }
                 
-                if ($producto->stock_kg < $item['cantidad_kg']) {
-                    throw new Exception("Stock insuficiente para: {$producto->nombre}. Disponible: {$producto->stock_kg} Kg");
+                if (!$producto->activo) {
+                    throw new Exception("El producto '{$producto->nombre}' está inactivo y no puede facturarse.");
                 }
 
+                // Validación de stock AHORA ES SEGURA: la fila está bloqueada
+                if ($producto->stock_kg < $item['cantidad_kg']) {
+                    throw new Exception(
+                        "Stock insuficiente para: {$producto->nombre}. " .
+                        "Disponible: {$producto->stock_kg} Kg, Solicitado: {$item['cantidad_kg']} Kg"
+                    );
+                }
                 // Calcular valores
                 $cantidad = round($item['cantidad_kg'], 3);
                 $precioKg = round($item['precio_kg'], 2); // Precio en moneda de pago
@@ -218,7 +245,10 @@ class FacturaController extends Controller
                 ]);
 
                 // Actualizar stock
-                $producto->decrement('stock_kg', $cantidad);
+                                // Actualizar stock (fila ya bloqueada por lockForUpdate)
+                $producto->update([
+                    'stock_kg' => $producto->stock_kg - $cantidad,
+                ]);
 
                 // Acumular totales
                 $subtotal += $neto;
@@ -272,65 +302,65 @@ class FacturaController extends Controller
         }
     }
 
-    public function edit(Factura $factura)
-    {
-        try {
-            if ($factura->estado !== 'pendiente') {
-                return redirect()->route('facturas.index')
-                    ->with('error', 'Solo se pueden editar facturas pendientes');
-            }
+    // public function edit(Factura $factura)
+    // {
+    //     try {
+    //         if ($factura->estado !== 'pendiente') {
+    //             return redirect()->route('facturas.index')
+    //                 ->with('error', 'Solo se pueden editar facturas pendientes');
+    //         }
 
-            $clientes = Cliente::orderBy('nombre')->get();
-            $monedas = Moneda::where('activa', true)->get();
-            $factura->load(['lineas.producto']);
+    //         $clientes = Cliente::orderBy('nombre')->get();
+    //         $monedas = Moneda::where('activa', true)->get();
+    //         $factura->load(['lineas.producto']);
 
-            return view('facturas.edit', compact('factura', 'clientes', 'monedas'));
-        } catch (Exception $e) {
-            Log::error('Error en edit: ' . $e->getMessage());
-            return redirect()->route('facturas.index')
-                ->with('error', 'Error al cargar el formulario de edición');
-        }
-    }
+    //         return view('facturas.edit', compact('factura', 'clientes', 'monedas'));
+    //     } catch (Exception $e) {
+    //         Log::error('Error en edit: ' . $e->getMessage());
+    //         return redirect()->route('facturas.index')
+    //             ->with('error', 'Error al cargar el formulario de edición');
+    //     }
+    // }
 
-    public function update(Request $request, Factura $factura)
-    {
-        try {
-            if ($factura->estado !== 'pendiente') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Solo se pueden editar facturas pendientes'
-                ], 422);
-            }
+    // public function update(Request $request, Factura $factura)
+    // {
+    //     try {
+    //         if ($factura->estado !== 'pendiente') {
+    //             return response()->json([
+    //                 'success' => false,
+    //                 'message' => 'Solo se pueden editar facturas pendientes'
+    //             ], 422);
+    //         }
 
-            $validator = validator($request->all(), [
-                'cliente_id' => 'required|exists:clientes,id',
-                'moneda_id' => 'required|exists:monedas,id',
-                'productos' => 'required|array|min:1',
-                'productos.*.producto_id' => 'required|exists:productos,id',
-                'productos.*.cantidad_kg' => 'required|numeric|min:0.001',
-                'productos.*.precio_kg' => 'required|numeric|min:0',
-            ]);
+    //         $validator = validator($request->all(), [
+    //             'cliente_id' => 'required|exists:clientes,id',
+    //             'moneda_id' => 'required|exists:monedas,id',
+    //             'productos' => 'required|array|min:1',
+    //             'productos.*.producto_id' => 'required|exists:productos,id',
+    //             'productos.*.cantidad_kg' => 'required|numeric|min:0.001',
+    //             'productos.*.precio_kg' => 'required|numeric|min:0',
+    //         ]);
 
-            if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'errors' => $validator->errors()
-                ], 422);
-            }
+    //         if ($validator->fails()) {
+    //             return response()->json([
+    //                 'success' => false,
+    //                 'errors' => $validator->errors()
+    //             ], 422);
+    //         }
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Factura actualizada exitosamente'
-            ]);
+    //         return response()->json([
+    //             'success' => true,
+    //             'message' => 'Factura actualizada exitosamente'
+    //         ]);
 
-        } catch (Exception $e) {
-            Log::error('Error en update: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Error al actualizar la factura'
-            ], 500);
-        }
-    }
+    //     } catch (Exception $e) {
+    //         Log::error('Error en update: ' . $e->getMessage());
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => 'Error al actualizar la factura'
+    //         ], 500);
+    //     }
+    // }
 
     public function destroy(Factura $factura)
     {
@@ -387,73 +417,218 @@ class FacturaController extends Controller
     }
 }
 
+       /**
+     * Anula una factura y restaura el stock de sus líneas.
+     *
+     * Garantías:
+     *  - Atómico: todo dentro de DB::transaction().
+     *  - Sin race conditions: usa lockForUpdate() sobre la factura
+     *    y sobre cada producto, en orden estable por producto_id.
+     *  - Idempotente: si ya está anulada, no hace nada (y lo reporta).
+     *  - Trazable: registra en log quién, cuándo y cuántos Kg se restauraron.
+     */
     public function anular(Factura $factura)
     {
         try {
-            if ($factura->estado === 'anulada') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'La factura ya está anulada'
-                ]);
-            }
+            $resultado = DB::transaction(function () use ($factura) {
 
-            DB::transaction(function () use ($factura) {
-                foreach ($factura->lineas as $linea) {
-                    $producto = Producto::find($linea->producto_id);
-                    if ($producto) {
-                        $producto->increment('stock_kg', $linea->cantidad_kg);
-                    }
+                // ============================================================
+                // 1) BLOQUEAR LA FACTURA Y REVALIDAR ESTADO DENTRO DEL LOCK
+                // ============================================================
+                // El chequeo previo fuera de la transacción no sirve para
+                // concurrencia: dos requests pueden leer 'pendiente' al mismo
+                // tiempo. Aquí, con lockForUpdate, el segundo request espera
+                // al COMMIT del primero y luego ve 'anulada'.
+                $facturaBloqueada = Factura::where('id', $factura->id)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (!$facturaBloqueada) {
+                    return [
+                        'success' => false,
+                        'message' => 'Factura no encontrada.',
+                        'status'  => 404,
+                    ];
                 }
 
-                $factura->update(['estado' => 'anulada']);
+                if ($facturaBloqueada->estado === Factura::ESTADO_ANULADA) {
+                    return [
+                        'success' => false,
+                        'message' => 'La factura ya está anulada.',
+                        'status'  => 422,
+                    ];
+                }
+
+                // ============================================================
+                // 2) RESTAURAR STOCK CON LOCKS EN ORDEN ESTABLE
+                // ============================================================
+                // Ordenamos por producto_id para evitar deadlocks si otra
+                // transacción está tocando los mismos productos en orden
+                // distinto (ej. una factura nueva con los mismos productos).
+                $lineas = $facturaBloqueada->lineas()
+                    ->orderBy('producto_id')
+                    ->get();
+
+                $kgRestaurados = 0;
+                $productosNoEncontrados = [];
+
+                foreach ($lineas as $linea) {
+                    $producto = Producto::where('id', $linea->producto_id)
+                        ->lockForUpdate()
+                        ->first();
+
+                    if (!$producto) {
+                        // No lanzamos excepción: puede ser un producto
+                        // eliminado legítimamente. Lo registramos para
+                        // trazabilidad pero no abortamos la anulación.
+                        $productosNoEncontrados[] = $linea->producto_id;
+                        Log::warning('Anulación: producto no encontrado, no se restauró stock', [
+                            'factura_id'  => $facturaBloqueada->id,
+                            'producto_id' => $linea->producto_id,
+                            'cantidad_kg' => $linea->cantidad_kg,
+                        ]);
+                        continue;
+                    }
+
+                    $producto->update([
+                        'stock_kg' => $producto->stock_kg + $linea->cantidad_kg,
+                    ]);
+
+                    $kgRestaurados += (float) $linea->cantidad_kg;
+                }
+
+                // ============================================================
+                // 3) MARCAR FACTURA COMO ANULADA
+                // ============================================================
+                $facturaBloqueada->update([
+                    'estado' => Factura::ESTADO_ANULADA,
+                ]);
+
+                // ============================================================
+                // 4) LOG DE AUDITORÍA
+                // ============================================================
+                Log::info('Factura anulada', [
+                    'factura_id'              => $facturaBloqueada->id,
+                    'numero'                  => $facturaBloqueada->numero,
+                    'user_id'                 => Auth::id(),
+                    'kg_restaurados'          => $kgRestaurados,
+                    'productos_no_encontrados' => $productosNoEncontrados,
+                ]);
+
+                return [
+                    'success' => true,
+                    'message' => 'Factura anulada correctamente. Stock restaurado: '
+                                 . number_format($kgRestaurados, 3) . ' Kg.',
+                    'status'  => 200,
+                ];
             });
 
             return response()->json([
-                'success' => true,
-                'message' => 'Factura anulada correctamente'
-            ]);
+                'success' => $resultado['success'],
+                'message' => $resultado['message'],
+            ], $resultado['status']);
 
         } catch (Exception $e) {
             Log::error('Error en anular: ' . $e->getMessage());
+            Log::error('Trace: ' . $e->getTraceAsString());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Error al anular la factura: ' . $e->getMessage()
+                'message' => 'Error al anular la factura. Intente nuevamente.',
             ], 500);
         }
     }
 
+        /**
+     * Marca una factura como pagada.
+     *
+     * Garantías:
+     *  - Atómico con lock pesimista: evita doble pago concurrente.
+     *  - Valida estado ('pendiente') y que la factura tenga líneas.
+     *  - Fija fecha_pago solo si no existía (idempotente).
+     */
     public function pagar(Factura $factura)
     {
         try {
-            if ($factura->estado === 'pagada') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'La factura ya está pagada'
-                ]);
-            }
+            $resultado = DB::transaction(function () use ($factura) {
 
-            if ($factura->estado === 'anulada') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'No se puede pagar una factura anulada'
-                ]);
-            }
+                // ============================================================
+                // 1) LOCK + REVALIDACIÓN DENTRO DE LA TRANSACCIÓN
+                // ============================================================
+                $facturaBloqueada = Factura::where('id', $factura->id)
+                    ->lockForUpdate()
+                    ->first();
 
-            $factura->update([
-                'estado' => 'pagada',
-                'fecha_pago' => now(),
-            ]);
+                if (!$facturaBloqueada) {
+                    return [
+                        'success' => false,
+                        'message' => 'Factura no encontrada.',
+                        'status'  => 404,
+                    ];
+                }
+
+                if ($facturaBloqueada->estado === Factura::ESTADO_PAGADA) {
+                    return [
+                        'success' => false,
+                        'message' => 'La factura ya está pagada.',
+                        'status'  => 422,
+                    ];
+                }
+
+                if ($facturaBloqueada->estado === Factura::ESTADO_ANULADA) {
+                    return [
+                        'success' => false,
+                        'message' => 'No se puede pagar una factura anulada.',
+                        'status'  => 422,
+                    ];
+                }
+
+                // ============================================================
+                // 2) VALIDACIÓN DE NEGOCIO: NO PAGAR FACTURA VACÍA
+                // ============================================================
+                // Una factura sin líneas no debería poder cobrarse.
+                if (!$facturaBloqueada->lineas()->exists()) {
+                    return [
+                        'success' => false,
+                        'message' => 'No se puede pagar una factura sin productos.',
+                        'status'  => 422,
+                    ];
+                }
+
+                // ============================================================
+                // 3) MARCAR COMO PAGADA
+                // ============================================================
+                $facturaBloqueada->update([
+                    'estado'     => Factura::ESTADO_PAGADA,
+                    'fecha_pago' => $facturaBloqueada->fecha_pago ?? now(),
+                ]);
+
+                Log::info('Factura pagada', [
+                    'factura_id' => $facturaBloqueada->id,
+                    'numero'     => $facturaBloqueada->numero,
+                    'user_id'    => Auth::id(),
+                    'total'      => $facturaBloqueada->total,
+                ]);
+
+                return [
+                    'success' => true,
+                    'message' => 'Factura marcada como pagada.',
+                    'status'  => 200,
+                ];
+            });
 
             return response()->json([
-                'success' => true,
-                'message' => 'Factura marcada como pagada'
-            ]);
+                'success' => $resultado['success'],
+                'message' => $resultado['message'],
+            ], $resultado['status']);
 
         } catch (Exception $e) {
             Log::error('Error en pagar: ' . $e->getMessage());
+            Log::error('Trace: ' . $e->getTraceAsString());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Error al procesar el pago: ' . $e->getMessage()
+                'message' => 'Error al procesar el pago. Intente nuevamente.',
             ], 500);
         }
     }
@@ -480,14 +655,41 @@ class FacturaController extends Controller
         }
     }
 
-    private function generarNumeroFactura()
+        /**
+     * Genera el siguiente número de factura de forma ATÓMICA.
+     *
+     * ¿Por qué es atómico?
+     * - Dentro de una transacción, bloquea la última fila de `facturas`
+     *   con lockForUpdate(). Dos transacciones concurrentes se serializan
+     *   aquí: la segunda espera a que la primera haga COMMIT.
+     * - Combinado con el índice UNIQUE en `numero`, esto elimina la
+     *   posibilidad de números duplicados.
+     *
+     * ⚠️ Debe llamarse SIEMPRE dentro de DB::transaction().
+     */
+    private function generarNumeroFactura(): string
     {
-        $ultima = Factura::orderBy('id', 'desc')->first();
-        if ($ultima && $ultima->numero) {
-            $numero = intval(substr($ultima->numero, -8)) + 1;
-            return 'FACT-' . str_pad($numero, 8, '0', STR_PAD_LEFT);
+        // Bloquea la fila más reciente para que nadie más la lea
+        // hasta que terminemos la transacción actual.
+        $ultima = Factura::orderByDesc('id')
+            ->lockForUpdate()
+            ->first();
+
+        if (!$ultima || !$ultima->numero) {
+            return 'FACT-00000001';
         }
-        return 'FACT-00000001';
+
+        // Extraer la parte numérica (asume formato FACT-XXXXXXXX)
+        $numero = intval(substr($ultima->numero, -8)) + 1;
+
+        // Límite de seguridad: 8 dígitos = 99.999.999 facturas
+        if ($numero > 99999999) {
+            throw new \RuntimeException(
+                'Se alcanzó el límite máximo de numeración de facturas (99.999.999).'
+            );
+        }
+
+        return 'FACT-' . str_pad($numero, 8, '0', STR_PAD_LEFT);
     }
     // Método auxiliar para obtener tasa de cambio
 private function obtenerTasaCambio($monedaPago)

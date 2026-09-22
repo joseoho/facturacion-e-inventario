@@ -174,11 +174,11 @@
                                     </a>
                                     
                                     @if($factura->estado === 'pendiente')
-                                        <a href="{{ route('facturas.edit', $factura) }}" 
+                                        {{-- <a href="{{ route('facturas.edit', $factura) }}" 
                                            class="btn btn-outline-warning" 
                                            title="Editar">
                                             <i class="bi bi-pencil"></i>
-                                        </a>
+                                        </a> --}}
                                         
                                         <button type="button" 
                                                 class="btn btn-outline-success" 

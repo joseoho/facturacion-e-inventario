@@ -18,9 +18,9 @@
         </button>
         
         @if($factura->estado === 'pendiente')
-            <a href="{{ route('facturas.edit', $factura) }}" class="btn btn-warning">
+            {{-- <a href="{{ route('facturas.edit', $factura) }}" class="btn btn-warning">
                 <i class="bi bi-pencil me-1"></i> Editar
-            </a>
+            </a> --}}
             <button type="button" class="btn btn-success" onclick="pagarFactura({{ $factura->id }})">
                 <i class="bi bi-check-lg me-1"></i> Pagar
             </button>

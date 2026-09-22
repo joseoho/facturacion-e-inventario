@@ -54,50 +54,126 @@
             </div>
             
             <!-- Resto de las tarjetas con verificaciones similares -->
-            
+                    <!-- Desglose del Mes Anterior -->
+        @if(isset($desgloseMesAnterior))
+        <div class="stat-card mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="fw-bold mb-0">
+                    Facturación {{ now()->subMonthNoOverflow()->translatedFormat('F Y') }}
+                </h6>
+                <span class="badge bg-secondary-subtle text-secondary-emphasis px-3 py-2">
+                    <i class="bi bi-calendar-check me-1"></i> Mes cerrado
+                </span>
+            </div>
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <div class="p-3 rounded border border-success-subtle bg-success-subtle">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-success-emphasis fw-semibold">
+                                <i class="bi bi-check-circle me-1"></i> Pagadas
+                            </span>
+                            <span class="badge bg-success">
+                                {{ $desgloseMesAnterior['pagadas']['cantidad'] }}
+                            </span>
+                        </div>
+                        <h4 class="mb-0 mt-2 fw-bold text-success-emphasis">
+                            {{ number_format($desgloseMesAnterior['pagadas']['total'], 2) }}
+                        </h4>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="p-3 rounded border border-warning-subtle bg-warning-subtle">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-warning-emphasis fw-semibold">
+                                <i class="bi bi-clock-history me-1"></i> Pendientes
+                            </span>
+                            <span class="badge bg-warning text-dark">
+                                {{ $desgloseMesAnterior['pendientes']['cantidad'] }}
+                            </span>
+                        </div>
+                        <h4 class="mb-0 mt-2 fw-bold text-warning-emphasis">
+                            {{ number_format($desgloseMesAnterior['pendientes']['total'], 2) }}
+                        </h4>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="p-3 rounded border border-danger-subtle bg-danger-subtle">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-danger-emphasis fw-semibold">
+                                <i class="bi bi-x-circle me-1"></i> Anuladas
+                            </span>
+                            <span class="badge bg-danger">
+                                {{ $desgloseMesAnterior['anuladas']['cantidad'] }}
+                            </span>
+                        </div>
+                        <h4 class="mb-0 mt-2 fw-bold text-danger-emphasis">
+                            {{ number_format($desgloseMesAnterior['anuladas']['total'], 2) }}
+                        </h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+        @endif
         </div>
         
-        <!-- Gráficos -->
-        <div class="row g-3 mb-4">
-            <div class="col-lg-8">
-                <div class="stat-card">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h6 class="fw-bold mb-0">Ventas de la Semana</h6>
-                        <span class="badge bg-primary-subtle text-primary-emphasis px-3 py-2">
-                            <i class="bi bi-calendar3 me-1"></i> Últimos 7 días
-                        </span>
-                    </div>
-                    <canvas id="ventasChart" height="250"></canvas>
-                </div>
-            </div>
-            
-            <div class="col-lg-4">
-                <div class="stat-card h-100">
-                    <h6 class="fw-bold mb-3">Productos Más Vendidos</h6>
-                    <div class="list-group list-group-flush">
-                        @if(isset($productosTop) && $productosTop->count() > 0)
-                            @foreach($productosTop as $producto)
-                            <div class="list-group-item d-flex justify-content-between align-items-center px-0 py-2 border-0 border-bottom">
-                                <div>
-                                    <span class="fw-semibold">{{ $producto->nombre }}</span>
-                                    <br>
-                                    <small class="text-muted">{{ number_format($producto->total_kg, 2) }} Kg</small>
-                                </div>
-                                <span class="badge bg-primary rounded-pill">
-                                    {{ number_format($producto->veces_vendido) }} ventas
-                                </span>
-                            </div>
-                            @endforeach
-                        @else
-                            <div class="text-center py-4 text-muted">
-                                <i class="bi bi-bar-chart-line fs-3 d-block mb-2"></i>
-                                Sin datos de ventas este mes
-                            </div>
-                        @endif
-                    </div>
-                </div>
-            </div>
+        <!-- Ventas de la Semana -->
+      <div class="col-lg-8">
+    <div class="stat-card h-100">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="fw-bold mb-0">Ventas de la Semana</h6>
+            <span class="badge bg-primary-subtle text-primary-emphasis px-3 py-2">
+                <i class="bi bi-calendar3 me-1"></i> Últimos 7 días
+            </span>
         </div>
+
+        @php
+            $totalSemana = array_sum($ventasSemana['data'] ?? []);
+            $maxDia = !empty($ventasSemana['data']) ? max($ventasSemana['data']) : 0;
+        @endphp
+
+        <div class="table-responsive">
+            <table class="table table-sm table-borderless align-middle mb-0">
+                <thead>
+                    <tr class="text-muted small text-uppercase">
+                        <th>Día</th>
+                        <th class="text-end">Monto</th>
+                        <th class="text-end" style="width: 60px;">%</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($ventasSemana['labels'] as $i => $label)
+                        @php
+                            $valor = $ventasSemana['data'][$i] ?? 0;
+                            $esHoy = $i === count($ventasSemana['labels']) - 1;
+                            $pct = $totalSemana > 0 ? round(($valor / $totalSemana) * 100, 1) : 0;
+                        @endphp
+                        <tr class="{{ $esHoy ? 'table-primary fw-semibold' : '' }}">
+                            <td>
+                                {{ $label }}
+                                @if($esHoy)
+                                    <span class="badge bg-primary ms-1">Hoy</span>
+                                @endif
+                            </td>
+                            <td class="text-end {{ $valor > 0 ? 'fw-semibold' : 'text-muted' }}">
+                                {{ number_format($valor, 2) }}
+                            </td>
+                            <td class="text-end small {{ $valor > 0 ? 'text-primary' : 'text-muted' }}">
+                                {{ $pct }}%
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+                <tfoot class="border-top">
+                    <tr class="fw-bold">
+                        <td>Total semana</td>
+                        <td class="text-end">{{ number_format($totalSemana, 2) }}</td>
+                        <td class="text-end small">100%</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
         
         <!-- Facturas Recientes -->
         <div class="stat-card">
@@ -164,4 +240,5 @@
         </div>
     </div>
 </x-layout>
+
 @endsection
