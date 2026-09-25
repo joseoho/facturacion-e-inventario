@@ -12,6 +12,16 @@ class Moneda extends Model
 
     protected $table = 'monedas';
 
+        // ============================================================
+    // CÓDIGOS DE MONEDA — fuente única de verdad
+    // ============================================================
+    public const CODIGO_USD = 'USD';
+    public const CODIGO_COP = 'COP';
+    public const CODIGO_VES = 'BS';   // Bolívar (según tu BD)
+    public const CODIGO_EUR = 'EUR';
+
+    public const ALIAS_VES = ['BS', 'VES'];
+
     protected $fillable = [
         'codigo',
         'nombre',
@@ -22,7 +32,20 @@ class Moneda extends Model
 
     protected $casts = [
         'es_base' => 'boolean',
+        'activo'  => 'boolean',
     ];
+
+    // protected $fillable = [
+    //     'codigo',
+    //     'nombre',
+    //     'simbolo',
+    //     'es_base',
+    //     'activo',
+    // ];
+
+    // protected $casts = [
+    //     'es_base' => 'boolean',
+    // ];
 
     /**
      * Tasas de cambio registradas para esta moneda.
@@ -46,5 +69,27 @@ class Moneda extends Model
     public function facturas(): HasMany
     {
         return $this->hasMany(Factura::class, 'moneda_id');
+    }
+
+        public function scopePorCodigo($query, string $codigo)
+    {
+        $codigo = strtoupper($codigo);
+
+        $codigos = match ($codigo) {
+            'VES', 'BS' => self::ALIAS_VES,
+            default     => [$codigo],
+        };
+
+        return $query->whereIn('codigo', $codigos);
+    }
+
+    public static function base(): ?self
+    {
+        return static::where('es_base', true)->first();
+    }
+
+    public function esBase(): bool
+    {
+        return (bool) $this->es_base;
     }
 }

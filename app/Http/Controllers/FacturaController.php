@@ -59,86 +59,110 @@ class FacturaController extends Controller
         }
     }
 
-    public function create()
-{
-    try {
-        $clientes = Cliente::orderBy('nombre')->get();
-        $monedas = Moneda::where('activo', true)->get();
-        
-        // OBTENER TASAS DE CAMBIO DE LA BASE DE DATOS
-        $tasaCOP = TasaCambio::whereHas('moneda', function($q) {
-            $q->where('codigo', 'COP');
-        })->latest('fecha')->first();
-        
-        $tasaVES = TasaCambio::whereHas('moneda', function($q) {
-            $q->where('codigo', 'BS');
-        })->latest('fecha')->first();
-        
-        // Tasa USD (si existe, sino 1)
-        $tasaUSD = TasaCambio::whereHas('moneda', function($q) {
-            $q->where('codigo', 'USD');
-        })->latest('fecha')->first();
-        
-        // Obtener productos con sus precios en USD
-        $productos = Producto::where('activo', true)
-            ->where('stock_kg', '>', 0)
-            ->get()
-            ->map(function($producto) {
+        public function create()
+    {
+        try {
+            $clientes = Cliente::where('activo', true)->orderBy('nombre')->get();
+
+            // ============================================================
+            // Monedas activas — colección para el <select> de la vista
+            // ============================================================
+            $monedas = Moneda::where('activo', true)->orderBy('id')->get();
+
+            // ============================================================
+            // Array plano para Alpine (evita problemas con @json)
+            // ============================================================
+            $monedasJson = $monedas->map(function ($m) {
                 return [
-                    'id' => $producto->id,
-                    'nombre' => $producto->nombre,
-                    'sku' => $producto->sku ?? 'N/A',
-                    'stock_kg' => $producto->stock_kg,
-                    'precio_kg_usd' => $producto->precio_kg_usd ?? 0,
-                    'iva_porcentaje' => $producto->iva_porcentaje ?? 0,
+                    'id'      => $m->id,
+                    'codigo'  => $m->codigo,
+                    'nombre'  => $m->nombre,
+                    'es_base' => (bool) $m->es_base,
                 ];
-            });
+            })->values()->all();
 
-        $ultimaFactura = Factura::orderBy('id', 'desc')->first();
-        $siguienteNumero = 'FACT-00000001';
-        
-        if ($ultimaFactura && $ultimaFactura->numero) {
-            $numero = intval(substr($ultimaFactura->numero, -8)) + 1;
-            $siguienteNumero = 'FACT-' . str_pad($numero, 8, '0', STR_PAD_LEFT);
+            // ============================================================
+            // Tasas de cambio vigentes (solo para referencia en la vista,
+            // NO se usan para calcular precios)
+            // ============================================================
+            $tasaCOP = TasaCambio::whereHas('moneda', function ($q) {
+                $q->porCodigo(Moneda::CODIGO_COP);
+            })->latest('fecha')->first();
+
+            $tasaVES = TasaCambio::whereHas('moneda', function ($q) {
+                $q->porCodigo(Moneda::CODIGO_VES);
+            })->latest('fecha')->first();
+
+            $tasaUSD = TasaCambio::whereHas('moneda', function ($q) {
+                $q->porCodigo(Moneda::CODIGO_USD);
+            })->latest('fecha')->first();
+
+            // ============================================================
+            // Productos activos con stock (solo referencia base en USD)
+            // ============================================================
+            $productos = Producto::where('activo', true)
+                ->where('stock_kg', '>', 0)
+                ->select('id', 'nombre', 'sku', 'stock_kg', 'iva_porcentaje', 'precio_kg_usd')
+                ->get()
+                ->map(function ($producto) {
+                    return [
+                        'id'             => $producto->id,
+                        'nombre'         => $producto->nombre,
+                        'sku'            => $producto->sku ?? 'N/A',
+                        'stock_kg'       => (float) $producto->stock_kg,
+                        'precio_kg_usd'  => (float) ($producto->precio_kg_usd ?? 0),
+                        'iva_porcentaje' => (float) ($producto->iva_porcentaje ?? 0),
+                    ];
+                });
+
+            // ============================================================
+            // Siguiente número de factura (solo previsualización)
+            // ============================================================
+            $ultimaFactura = Factura::orderBy('id', 'desc')->first();
+            $siguienteNumero = 'FACT-00000001';
+
+            if ($ultimaFactura && $ultimaFactura->numero) {
+                $numero = intval(substr($ultimaFactura->numero, -8)) + 1;
+                $siguienteNumero = 'FACT-' . str_pad($numero, 8, '0', STR_PAD_LEFT);
+            }
+
+            return view('facturas.create', compact(
+                'clientes',
+                'monedas',
+                'monedasJson',
+                'productos',
+                'siguienteNumero',
+                'tasaCOP',
+                'tasaVES',
+                'tasaUSD'
+            ));
+
+        } catch (Exception $e) {
+            Log::error('Error en create: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return redirect()->route('facturas.index')
+                ->with('error', 'Error al cargar el formulario: ' . $e->getMessage());
         }
-
-        return view('facturas.create', compact(
-            'clientes', 
-            'monedas', 
-            'productos',
-            'siguienteNumero',
-            'tasaCOP',
-            'tasaVES',
-            'tasaUSD'
-        ));
-
-    } catch (Exception $e) {
-        Log::error('Error en create: ' . $e->getMessage());
-        return redirect()->route('facturas.index')
-            ->with('error', 'Error al cargar el formulario: ' . $e->getMessage());
     }
-}
 
     public function store(Request $request)
     {
         try {
-        $validator = validator($request->all(), [
-            'cliente_id' => 'required|exists:clientes,id',
-            'moneda_id' => 'required|exists:monedas,id',
-            'moneda_pago' => 'required|in:USD,COP,VES',
-            'productos' => 'required|array|min:1',
+            $validator = validator($request->all(), [
+            'cliente_id'              => 'required|exists:clientes,id',
+            'moneda_id'               => 'required|exists:monedas,id',
+            'moneda_pago'             => 'required|string|in:USD,COP,BS,VES,EUR',
+            'productos'               => 'required|array|min:1',
             'productos.*.producto_id' => 'required|exists:productos,id',
-            'productos.*.cantidad_kg' => 'required|regex:/^[0-9.\-#]+$/',
-            // 'productos.*.cantidad_kg' => 'required|numeric|min:0',
-            // 'productos.*.cantidad_kg' => 'required|numeric|min:0|max:9999.999|regex:/^\d+(\.\d{1,3})?$/',
-            'productos.*.precio_kg' => 'required|numeric|min:0',
+            'productos.*.cantidad_kg' => 'required|numeric|min:0.001|max:9999.999',
+            'productos.*.precio_kg'   => 'required|numeric|min:0',
         ], [
             'moneda_pago.required' => 'Debes seleccionar la moneda de pago',
-            'moneda_pago.in' => 'Moneda de pago no válida',
-            'productos.required' => 'Debes agregar al menos un producto',
-            'productos.min' => 'Debes agregar al menos un producto',
+            'moneda_pago.in'       => 'Moneda de pago no válida',
+            'productos.required'   => 'Debes agregar al menos un producto',
+            'productos.min'        => 'Debes agregar al menos un producto',
         ]);
-
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
@@ -149,135 +173,198 @@ class FacturaController extends Controller
 
         $validated = $validator->validated();
 
-        return DB::transaction(function () use ($validated) {
-            // Obtener tasa de cambio según moneda de pago
-            $tasaCambio = $this->obtenerTasaCambio($validated['moneda_pago']);
-            
-            // Buscar o crear tasa de cambio en la tabla
-            $tasaCambioModel = TasaCambio::whereHas('moneda', function($q) use ($validated) {
-                $q->where('codigo', $validated['moneda_pago']);
-            })->latest('fecha')->first();
-            
-            // Generar número de factura
-            $numeroFactura = $this->generarNumeroFactura();
-
-            // Crear factura
-            $factura = Factura::create([
-                'numero' => $numeroFactura,
-                'cliente_id' => $validated['cliente_id'],
-                'user_id' => Auth::id(),
-                'moneda_id' => $validated['moneda_id'],
-                'tasa_cambio_id' => $tasaCambioModel ? $tasaCambioModel->id : null,
-                'subtotal_neto' => 0,
-                'total_impuesto' => 0,
-                'total' => 0,
-                'estado' => 'pendiente',
-                'fecha_emision' => now(),
-            ]);
-
-            $subtotal = 0;
-            $totalImpuesto = 0;
-            $totalGeneral = 0;
+                return DB::transaction(function () use ($validated) {
 
             // ============================================================
-            // 🔒 ORDENAR ITEMS POR producto_id PARA EVITAR DEADLOCKS
+            // VALIDAR MONEDA DE PAGO
             // ============================================================
-            // Si dos transacciones bloquean los mismos productos en distinto
-            // orden (A→B y B→A), MySQL puede detectar un deadlock y abortar
-            // una. Ordenar siempre por producto_id garantiza un orden
-            // consistente de adquisición de locks.
+            $monedaPago = Moneda::porCodigo($validated['moneda_pago'])
+                ->where('activo', true)
+                ->first();
+
+            if (!$monedaPago) {
+                throw new Exception(
+                    "Moneda de pago '{$validated['moneda_pago']}' no existe o está inactiva."
+                );
+            }
+
+            $esBase = $monedaPago->esBase();
+
+            // ============================================================
+            // RESOLVER TASA VIGENTE (una sola vez para toda la factura)
+            // ============================================================
+            // IMPORTANTE: la tasa se resuelve UNA VEZ al inicio de la
+            // transacción y se aplica a TODAS las líneas. Así, si el admin
+            // cambia la tasa a mitad de la facturación, no afecta a esta
+            // factura (que ya está en curso).
+            // ============================================================
+            $tasaVigente = null;
+
+            if (!$esBase) {
+                $tasaVigente = TasaCambio::where('moneda_id', $monedaPago->id)
+                    ->orderByDesc('fecha')
+                    ->orderByDesc('id')
+                    ->first();
+
+                if (!$tasaVigente || (float) $tasaVigente->tasa <= 0) {
+                    throw new Exception(
+                        "No hay tasa de cambio vigente para {$monedaPago->codigo}. " .
+                        "Registra una tasa antes de facturar en esta moneda."
+                    );
+                }
+            }
+
+            $tasaCambioIdUsada = $esBase ? null : $tasaVigente->id;
+            $tasaValorUsada    = $esBase ? null : (float) $tasaVigente->tasa;
+
+            // ============================================================
+            // ORDENAR ITEMS POR producto_id PARA EVITAR DEADLOCKS
+            // ============================================================
             $items = collect($validated['productos'])
                 ->sortBy('producto_id')
                 ->values()
                 ->all();
 
+            // ============================================================
+            // GENERAR NÚMERO DE FACTURA (atómico)
+            // ============================================================
+            $numeroFactura = $this->generarNumeroFactura();
+
+            // ============================================================
+            // CREAR LA FACTURA CON TODOS LOS CAMPOS
+            // ============================================================
+            $factura = Factura::create([
+                'numero'            => $numeroFactura,
+                'cliente_id'        => $validated['cliente_id'],
+                'user_id'           => Auth::id(),
+                'moneda_id'         => $monedaPago->id,
+                'moneda_pago'       => $monedaPago->codigo,
+                'tasa_cambio_id'    => $tasaCambioIdUsada,
+                'tasa_cambio_usada' => $tasaValorUsada,
+                'subtotal_neto'     => 0,
+                'total_impuesto'    => 0,
+                'total'             => 0,
+                'estado'            => Factura::ESTADO_PENDIENTE,
+                'fecha_emision'     => now(),
+            ]);
+
+            $subtotal      = 0;
+            $totalImpuesto = 0;
+            $totalGeneral  = 0;
+
+            // ============================================================
+            // PROCESAR LÍNEAS
+            // ============================================================
             foreach ($items as $item) {
-                // ========================================================
-                // 🔒 LOCK PESIMISTA (SELECT ... FOR UPDATE)
-                // ========================================================
-                // Bloquea la fila del producto dentro de la transacción
-                // hasta que se haga COMMIT o ROLLBACK. Esto elimina la
-                // race condition: dos requests concurrentes NO podrán
-                // leer el mismo stock al mismo tiempo.
                 $producto = Producto::where('id', $item['producto_id'])
                     ->lockForUpdate()
                     ->first();
-                
+
                 if (!$producto) {
                     throw new Exception("Producto no encontrado: ID {$item['producto_id']}");
                 }
-                
                 if (!$producto->activo) {
-                    throw new Exception("El producto '{$producto->nombre}' está inactivo y no puede facturarse.");
+                    throw new Exception("El producto '{$producto->nombre}' está inactivo.");
                 }
 
-                // Validación de stock AHORA ES SEGURA: la fila está bloqueada
-                if ($producto->stock_kg < $item['cantidad_kg']) {
+                $precioBase = (float) ($producto->precio_kg_usd ?? 0);
+                if ($precioBase <= 0) {
                     throw new Exception(
-                        "Stock insuficiente para: {$producto->nombre}. " .
-                        "Disponible: {$producto->stock_kg} Kg, Solicitado: {$item['cantidad_kg']} Kg"
+                        "El producto '{$producto->nombre}' no tiene precio base configurado."
                     );
                 }
-                // Calcular valores
-                $cantidad = round($item['cantidad_kg'], 3);
-                $precioKg = round($item['precio_kg'], 2); // Precio en moneda de pago
-                $impuestoPorcentaje = $producto->iva_porcentaje ?? 0;
-                
-                // Calcular neto (subtotal sin impuesto)
-                $neto = round($cantidad * $precioKg, 2);
-                
-                // Calcular impuesto
-                $impuestoMonto = round($neto * ($impuestoPorcentaje / 100), 2);
-                
-                // Calcular total de la línea
-                $totalLinea = round($neto + $impuestoMonto, 2);
 
-                // Crear línea de factura con los campos correctos
+                // ========================================================
+                // CALCULAR PRECIO EN LA MONEDA DE PAGO
+                // ========================================================
+                if ($esBase) {
+                    $precioKg = round($precioBase, 4);
+                } else {
+                    $precioKg = round($precioBase * $tasaValorUsada, 4);
+                }
+
+                $cantidad = round((float) $item['cantidad_kg'], 3);
+                if ($cantidad <= 0) {
+                    throw new Exception("Cantidad inválida para '{$producto->nombre}'.");
+                }
+
+                // ========================================================
+                // VALIDACIÓN DE SANIDAD
+                // ========================================================
+                // El frontend puede mandar un precio distinto por
+                // manipulación o desincronización. Comparamos, logueamos
+                // y SIEMPRE imponemos el precio oficial calculado aquí.
+                // ========================================================
+                $precioEnviado = (float) ($item['precio_kg'] ?? 0);
+                if (abs($precioEnviado - $precioKg) > 0.01) {
+                    Log::warning('Precio enviado difiere del calculado — se impone el oficial', [
+                        'factura_numero' => $numeroFactura,
+                        'producto_id'    => $producto->id,
+                        'producto'       => $producto->nombre,
+                        'precio_enviado' => $precioEnviado,
+                        'precio_oficial' => $precioKg,
+                        'moneda'         => $monedaPago->codigo,
+                        'tasa_usada'     => $tasaValorUsada,
+                    ]);
+                }
+
+                // Validar stock (fila bloqueada por lockForUpdate)
+                if ((float) $producto->stock_kg < $cantidad) {
+                    throw new Exception(
+                        "Stock insuficiente para: {$producto->nombre}. " .
+                        "Disponible: {$producto->stock_kg} Kg, Solicitado: {$cantidad} Kg"
+                    );
+                }
+
+                $impuestoPorcentaje = (float) ($producto->iva_porcentaje ?? 0);
+                $neto               = round($cantidad * $precioKg, 4);
+                $impuestoMonto      = round($neto * ($impuestoPorcentaje / 100), 4);
+                $totalLinea         = round($neto + $impuestoMonto, 4);
+
                 FacturaLinea::create([
-                    'factura_id' => $factura->id,
-                    'producto_id' => $producto->id,
-                    'cantidad_kg' => $cantidad,
-                    'precio_kg' => $precioKg,
-                    'neto' => $neto,
+                    'factura_id'          => $factura->id,
+                    'producto_id'         => $producto->id,
+                    'cantidad_kg'         => $cantidad,
+                    'precio_kg'           => $precioKg,
+                    'neto'                => $neto,
                     'impuesto_porcentaje' => $impuestoPorcentaje,
-                    'impuesto_monto' => $impuestoMonto,
-                    'total' => $totalLinea,
+                    'impuesto_monto'      => $impuestoMonto,
+                    'total'               => $totalLinea,
                 ]);
 
-                // Actualizar stock
-                                // Actualizar stock (fila ya bloqueada por lockForUpdate)
                 $producto->update([
                     'stock_kg' => $producto->stock_kg - $cantidad,
                 ]);
 
-                // Acumular totales
-                $subtotal += $neto;
+                $subtotal      += $neto;
                 $totalImpuesto += $impuestoMonto;
-                $totalGeneral += $totalLinea;
+                $totalGeneral  += $totalLinea;
             }
 
-            // Actualizar totales de la factura
+            // ============================================================
+            // ACTUALIZAR TOTALES
+            // ============================================================
             $factura->update([
-                'subtotal_neto' => round($subtotal, 2),
-                'total_impuesto' => round($totalImpuesto, 2),
-                'total' => round($totalGeneral, 2),
+                'subtotal_neto'  => round($subtotal, 4),
+                'total_impuesto' => round($totalImpuesto, 4),
+                'total'          => round($totalGeneral, 4),
             ]);
 
-            Log::info('Factura creada exitosamente:', [
-                'id' => $factura->id,
-                'numero' => $factura->numero,
-                'moneda_pago' => $validated['moneda_pago'],
-                'total' => $factura->total,
-                'tasa' => $tasaCambio
+            Log::info('Factura creada', [
+                'id'          => $factura->id,
+                'numero'      => $factura->numero,
+                'moneda_pago' => $monedaPago->codigo,
+                'tasa_usada'  => $tasaValorUsada,
+                'total'       => $factura->total,
             ]);
 
             return response()->json([
-                'success' => true,
-                'message' => '¡Factura creada exitosamente!',
-                'redirect' => route('facturas.show', $factura)
+                'success'  => true,
+                'message'  => '¡Factura creada exitosamente!',
+                'redirect' => route('facturas.show', $factura),
             ]);
-
         });
+
 
     } catch (Exception $e) {
         Log::error('Error en store: ' . $e->getMessage());
@@ -367,56 +454,180 @@ class FacturaController extends Controller
         return $this->anular($factura);
     }
 
-    public function buscarProductos(Request $request)
-{
-    try {
-        $termino = $request->get('q', '');
+//     public function buscarProductos(Request $request)
+// {
+//     try {
+//         $termino = $request->get('q', '');
         
-        if (strlen($termino) < 2) {
-            return response()->json([]);
-        }
+//         if (strlen($termino) < 2) {
+//             return response()->json([]);
+//         }
 
-        // Obtener tasas de cambio de la base de datos
-        $tasaCOP = TasaCambio::whereHas('moneda', function($q) {
-            $q->where('codigo', 'COP');
-        })->latest('fecha')->first();
+//         // Obtener tasas de cambio de la base de datos
+//         $tasaCOP = TasaCambio::whereHas('moneda', function($q) {
+//             $q->where('codigo', 'COP');
+//         })->latest('fecha')->first();
         
-        $tasaVES = TasaCambio::whereHas('moneda', function($q) {
-            $q->where('codigo', 'VES');
-        })->latest('fecha')->first();
+//         $tasaVES = TasaCambio::whereHas('moneda', function($q) {
+//             $q->where('codigo', 'VES');
+//         })->latest('fecha')->first();
 
-        $productos = Producto::where('activo', true)
-            ->where('stock_kg', '>', 0)
-            ->where(function($query) use ($termino) {
-                $query->where('nombre', 'LIKE', "%{$termino}%")
-                      ->orWhere('sku', 'LIKE', "%{$termino}%")
-                      ->orWhere('descripcion', 'LIKE', "%{$termino}%");
-            })
-            ->limit(10)
-            ->get()
-            ->map(function($producto) use ($tasaCOP, $tasaVES) {
-                $precioUsd = $producto->precio_kg_usd ?? 0;
+//         $productos = Producto::where('activo', true)
+//             ->where('stock_kg', '>', 0)
+//             ->where(function($query) use ($termino) {
+//                 $query->where('nombre', 'LIKE', "%{$termino}%")
+//                       ->orWhere('sku', 'LIKE', "%{$termino}%")
+//                       ->orWhere('descripcion', 'LIKE', "%{$termino}%");
+//             })
+//             ->limit(10)
+//             ->get()
+//             ->map(function($producto) use ($tasaCOP, $tasaVES) {
+//                 $precioUsd = $producto->precio_kg_usd ?? 0;
                 
-                return [
-                    'id' => $producto->id,
-                    'nombre' => $producto->nombre,
-                    'sku' => $producto->sku ?? 'N/A',
-                    'stock_kg' => $producto->stock_kg,
-                    'precio_kg_usd' => $precioUsd,
-                    'precio_kg_cop' => $precioUsd * ($tasaCOP->tasa ?? 3800),
-                    'precio_kg_ves' => $precioUsd * ($tasaVES->tasa ?? 36),
-                    'iva_porcentaje' => $producto->iva_porcentaje ?? 0,
-                ];
-            });
+//                 return [
+//                     'id' => $producto->id,
+//                     'nombre' => $producto->nombre,
+//                     'sku' => $producto->sku ?? 'N/A',
+//                     'stock_kg' => $producto->stock_kg,
+//                     'precio_kg_usd' => $precioUsd,
+//                     'precio_kg_cop' => $precioUsd * ($tasaCOP->tasa ?? 3800),
+//                     'precio_kg_ves' => $precioUsd * ($tasaVES->tasa ?? 36),
+//                     'iva_porcentaje' => $producto->iva_porcentaje ?? 0,
+//                 ];
+//             });
 
-        return response()->json($productos);
+//         return response()->json($productos);
 
-    } catch (Exception $e) {
-        Log::error('Error en buscarProductos: ' . $e->getMessage());
-        return response()->json([]);
+//     } catch (Exception $e) {
+//         Log::error('Error en buscarProductos: ' . $e->getMessage());
+//         return response()->json([]);
+//     }
+// }
+
+    /**
+     * Busca productos activos con stock y devuelve sus precios OFICIALES
+     * (desde `precios_productos`) para la moneda de pago solicitada.
+     *
+     * Query params:
+     *   - q: término de búsqueda (mín. 2 caracteres)
+     *   - moneda_id: id de la moneda en la que se va a facturar
+     */
+        /**
+     * Busca productos activos con stock y calcula su precio en la moneda
+     * solicitada usando la ÚLTIMA tasa vigente registrada por el admin.
+     *
+     * Reglas:
+     *   - USD (moneda base): precio = precio_kg_usd (tasa = 1)
+     *   - BS / COP:          precio = precio_kg_usd × última tasa vigente
+     *
+     * Si no hay tasa para la moneda (solo si el admin nunca la registró),
+     * se devuelve precio_disponible = false y el frontend bloquea la venta.
+     *
+     * Query params:
+     *   - q: término de búsqueda (mín. 2 caracteres)
+     *   - moneda_id: id de la moneda en la que se va a facturar
+     */
+    public function buscarProductos(Request $request)
+    {
+        try {
+            $termino = trim((string) $request->get('q', ''));
+            $monedaId = $request->get('moneda_id');
+
+            if (mb_strlen($termino) < 2) {
+                return response()->json([]);
+            }
+
+            // Sin moneda no podemos calcular precios.
+            if (!$monedaId) {
+                return response()->json([
+                    'error' => 'Debes seleccionar una moneda de pago antes de buscar productos.',
+                ], 422);
+            }
+
+            $moneda = Moneda::find($monedaId);
+            if (!$moneda || !$moneda->activo) {
+                return response()->json([
+                    'error' => 'Moneda inválida o inactiva.',
+                ], 422);
+            }
+
+            // ============================================================
+            // RESOLVER LA TASA VIGENTE (una sola vez por request)
+            // ============================================================
+            // La "tasa vigente" es la ÚLTIMA registrada para esa moneda,
+            // sin importar cuán antigua sea. Si el admin olvidó actualizar
+            // hoy, se sigue usando la última que registró.
+            // ============================================================
+            $esBase = $moneda->esBase();
+            $tasaVigente = null;
+
+            if (!$esBase) {
+                $tasaVigente = TasaCambio::where('moneda_id', $moneda->id)
+                    ->orderByDesc('fecha')
+                    ->orderByDesc('id')
+                    ->first();
+
+                // Si no hay tasa, todos los productos irán con precio_disponible = false
+            }
+
+            // ============================================================
+            // BUSCAR PRODUCTOS
+            // ============================================================
+            $productos = Producto::where('activo', true)
+                ->where('stock_kg', '>', 0)
+                ->where(function ($query) use ($termino) {
+                    $query->where('nombre', 'LIKE', "%{$termino}%")
+                          ->orWhere('sku', 'LIKE', "%{$termino}%")
+                          ->orWhere('descripcion', 'LIKE', "%{$termino}%");
+                })
+                ->limit(10)
+                ->get()
+                ->map(function ($producto) use ($moneda, $esBase, $tasaVigente) {
+                    $precioBase = (float) ($producto->precio_kg_usd ?? 0);
+                    $disponible = true;
+                    $precioKg   = null;
+
+                    if ($esBase) {
+                        // USD: tasa 1, precio base tal cual
+                        $precioKg = round($precioBase, 4);
+                    } elseif ($tasaVigente && (float) $tasaVigente->tasa > 0) {
+                        // BS / COP: precio base × tasa vigente
+                        $precioKg = round($precioBase * (float) $tasaVigente->tasa, 4);
+                    } else {
+                        // Sin tasa vigente: no se puede facturar en esta moneda
+                        $disponible = false;
+                    }
+
+                    // Si el precio base es 0 o negativo, no facturable
+                    if ($precioBase <= 0) {
+                        $disponible = false;
+                        $precioKg = null;
+                    }
+
+                    return [
+                        'id'                => $producto->id,
+                        'nombre'            => $producto->nombre,
+                        'sku'               => $producto->sku ?? 'N/A',
+                        'stock_kg'          => (float) $producto->stock_kg,
+                        'precio_kg'         => $precioKg,
+                        'moneda_id'         => $moneda->id,
+                        'moneda_codigo'     => $moneda->codigo,
+                        'precio_disponible' => $disponible,
+                        'iva_porcentaje'    => (float) ($producto->iva_porcentaje ?? 0),
+                    ];
+                });
+
+            return response()->json($productos);
+
+        } catch (Exception $e) {
+            Log::error('Error en buscarProductos: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return response()->json([
+                'error' => 'Error al buscar productos.',
+            ], 500);
+        }
     }
-}
-
        /**
      * Anula una factura y restaura el stock de sus líneas.
      *

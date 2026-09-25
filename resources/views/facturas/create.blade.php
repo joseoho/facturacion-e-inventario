@@ -109,7 +109,7 @@
                                                     <small class="text-muted" x-show="monedaPago === 'USD'">1 USD</small>
                                                 </button>
                                                 
-                                                <button type="button" 
+                                                {{-- <button type="button" 
                                                         class="btn flex-grow-1 d-flex flex-column align-items-center py-2"
                                                         :class="monedaPago === 'VES' ? 'btn-success active' : 'btn-outline-secondary'"
                                                         @click="seleccionarMonedaPago('VES')">
@@ -117,9 +117,16 @@
                                                     <span class="small">VES</span>
                                                     <span class="badge bg-light text-dark mt-1" x-show="monedaPago === 'VES'">✓</span>
                                                     <small class="text-muted" x-show="monedaPago === 'VES'" x-text="'1 USD = ' + formatPrecio(tasaVES) + ' VES'"></small>
-                                                </button>
-                                                
+                                                </button> --}}
                                                 <button type="button" 
+                                                        class="btn flex-grow-1 d-flex flex-column align-items-center py-2"
+                                                        :class="monedaPago === 'BS' ? 'btn-success active' : 'btn-outline-secondary'"
+                                                        @click="seleccionarMonedaPago('BS')">
+                                                    <i class="bi bi-currency-exchange fs-5"></i>
+                                                    <span class="small">BS</span>
+                                                    <span class="badge bg-light text-dark mt-1" x-show="monedaPago === 'BS'">✓</span>
+                                                </button>
+                                                {{-- <button type="button" 
                                                         class="btn flex-grow-1 d-flex flex-column align-items-center py-2"
                                                         :class="monedaPago === 'COP' ? 'btn-success active' : 'btn-outline-secondary'"
                                                         @click="seleccionarMonedaPago('COP')">
@@ -127,6 +134,14 @@
                                                     <span class="small">COP</span>
                                                     <span class="badge bg-light text-dark mt-1" x-show="monedaPago === 'COP'">✓</span>
                                                     <small class="text-muted" x-show="monedaPago === 'COP'" x-text="'1 USD = ' + formatPrecio(tasaCOP) + ' COP'"></small>
+                                                </button> --}}
+                                                <button type="button" 
+                                                        class="btn flex-grow-1 d-flex flex-column align-items-center py-2"
+                                                        :class="monedaPago === 'COP' ? 'btn-success active' : 'btn-outline-secondary'"
+                                                        @click="seleccionarMonedaPago('COP')">
+                                                    <i class="bi bi-currency-exchange fs-5"></i>
+                                                    <span class="small">COP</span>
+                                                    <span class="badge bg-light text-dark mt-1" x-show="monedaPago === 'COP'">✓</span>
                                                 </button>
                                             </div>
                             
@@ -255,8 +270,18 @@
                                                 Stock: <span x-text="Number(item.stock_kg).toFixed(3)"></span> Kg
                                             </small>
                                         </td>
-                                        <td class="text-end">
+                                        {{-- <td class="text-end">
                                             <span x-text="formatPrecio(item.precio_kg)"></span>
+                                        </td> --}}
+                                        <td class="text-end">
+                                            <template x-if="item.sin_precio">
+                                                <span class="badge bg-warning text-dark">
+                                                    <i class="bi bi-exclamation-triangle me-1"></i>Sin precio
+                                                </span>
+                                            </template>
+                                            <template x-if="!item.sin_precio">
+                                                <span x-text="formatPrecio(item.precio_kg)"></span>
+                                            </template>
                                         </td>
                                         <td class="text-center">
                                             <span class="badge bg-secondary" x-text="item.iva_porcentaje + '%'"></span>
@@ -365,10 +390,16 @@ document.addEventListener('alpine:init', () => {
         // TASAS DE CAMBIO DESDE BD
         // =============================================
         monedaPago: 'USD',
-        tasaCOP: {{ $tasaCOP->tasa ?? 3200 }},
-        tasaVES: {{ $tasaVES->tasa ?? 785.5855 }},
-        tasaUSD: {{ $tasaUSD->tasa ?? 1 }},
-        tasaSeleccionada: 1, // Por defecto USD
+        tasaSeleccionada: 1,
+        
+        // ⚠️ Monedas activas cargadas desde el backend
+        // (necesario para mapear 'USD'/'BS'/'COP' → moneda_id real)
+                monedas: @json($monedasJson),
+        // monedaPago: 'USD',
+        // tasaCOP: {{ $tasaCOP->tasa ?? 3200 }},
+        // tasaVES: {{ $tasaVES->tasa ?? 785.5855 }},
+        // tasaUSD: {{ $tasaUSD->tasa ?? 1 }},
+        // tasaSeleccionada: 1, // Por defecto USD
         
         // =============================================
         // BÚSQUEDA
@@ -393,48 +424,126 @@ document.addEventListener('alpine:init', () => {
         // =============================================
         // SELECCIONAR MONEDA DE PAGO
         // =============================================
-        seleccionarMonedaPago(moneda) {
+                seleccionarMonedaPago(moneda) {
             this.monedaPago = moneda;
             
-            // Asignar tasa según moneda seleccionada
-            switch(moneda) {
-                case 'USD':
-                    this.tasaSeleccionada = 1;
-                    break;
-                case 'COP':
-                    this.tasaSeleccionada = this.tasaCOP;
-                    break;
-                case 'VES':
-                    this.tasaSeleccionada = this.tasaVES;
-                    break;
-                default:
-                    this.tasaSeleccionada = 1;
+            // ⚠️ Nota: la tasa se usa solo para MOSTRAR info al usuario,
+            // NO para calcular precios. Los precios los impone el backend.
+            const monedaId = this.monedaIdDesdeCodigo(moneda);
+            const monedaObj = this.monedas.find(m => m.id === monedaId);
+            
+            if (monedaObj) {
+                // Si es la moneda base, tasa = 1. Si no, no la mostramos
+                // como "tasa aplicada" porque la gestiona el admin.
+                this.tasaSeleccionada = monedaObj.es_base ? 1 : null;
+            } else {
+                this.tasaSeleccionada = 1;
             }
             
-            // Recalcular TODOS los precios de los items
-            this.recalcularPrecios();
+            // ⚠️ Re-consultar precios oficiales al backend para cada item
+            this.refrescarPreciosDesdeBackend();
             
-            this.mostrarAlerta(`Moneda cambiada a ${moneda} (1 USD = ${this.formatPrecio(this.tasaSeleccionada)} ${moneda})`, 'info');
+            this.mostrarAlerta(`Moneda de pago cambiada a ${moneda}`, 'info');
         },
         
-        // =============================================
-        // RECALCULAR PRECIOS DE TODOS LOS ITEMS
-        // =============================================
-        recalcularPrecios() {
+        // Pide al backend los precios oficiales para los items actuales
+        // según la moneda de pago seleccionada
+        async refrescarPreciosDesdeBackend() {
             if (this.items.length === 0) return;
             
+            const monedaId = this.monedaIdDesdeCodigo(this.monedaPago);
+            if (!monedaId) return;
+            
+            const ids = this.items.map(i => i.id);
+            const nuevosPrecios = {};
+            
+            // Buscar cada producto por separado (o podrías tener un endpoint batch)
+            for (const item of this.items) {
+                try {
+                    const resp = await fetch(
+                        `/facturas/buscar-productos?q=${encodeURIComponent(item.sku || item.nombre)}&moneda_id=${monedaId}`
+                    );
+                    const data = await resp.json();
+                    const found = Array.isArray(data) ? data.find(p => p.id === item.id) : null;
+                    
+                    if (found && found.precio_disponible) {
+                        nuevosPrecios[item.id] = parseFloat(found.precio_kg);
+                    } else {
+                        nuevosPrecios[item.id] = null;
+                    }
+                } catch (e) {
+                    console.error('Error refrescando precio de', item.nombre, e);
+                    nuevosPrecios[item.id] = null;
+                }
+            }
+            
+            // Aplicar precios
+            let haySinPrecio = false;
             this.items.forEach((item, index) => {
-                const precioUsd = parseFloat(item.precio_kg_usd) || 0;
-                // Multiplicar por la tasa seleccionada
-                item.precio_kg = precioUsd * this.tasaSeleccionada;
+                const precio = nuevosPrecios[item.id];
+                if (precio === null || precio === undefined) {
+                    haySinPrecio = true;
+                    item.precio_kg = 0;
+                    item.sin_precio = true;
+                } else {
+                    item.precio_kg = precio;
+                    item.precio_original = precio;
+                    item.sin_precio = false;
+                }
                 this.calcularItem(index);
             });
+            
+            if (haySinPrecio) {
+                this.mostrarAlerta(
+                    `Algunos productos no tienen precio en ${this.monedaPago}. Elimínalos o cambia la moneda.`,
+                    'warning'
+                );
+            }
         },
+        
+        // seleccionarMonedaPago(moneda) {
+        //     this.monedaPago = moneda;
+            
+        //     // Asignar tasa según moneda seleccionada
+        //     switch(moneda) {
+        //         case 'USD':
+        //             this.tasaSeleccionada = 1;
+        //             break;
+        //         case 'COP':
+        //             this.tasaSeleccionada = this.tasaCOP;
+        //             break;
+        //         case 'VES':
+        //             this.tasaSeleccionada = this.tasaVES;
+        //             break;
+        //         default:
+        //             this.tasaSeleccionada = 1;
+        //     }
+            
+        //     // Recalcular TODOS los precios de los items
+        //     this.recalcularPrecios();
+            
+        //     this.mostrarAlerta(`Moneda cambiada a ${moneda} (1 USD = ${this.formatPrecio(this.tasaSeleccionada)} ${moneda})`, 'info');
+        // },
+        
+        // // =============================================
+        // // RECALCULAR PRECIOS DE TODOS LOS ITEMS
+        // // =============================================
+        // recalcularPrecios() {
+        //     if (this.items.length === 0) return;
+            
+        //     this.items.forEach((item, index) => {
+        //         const precioUsd = parseFloat(item.precio_kg_usd) || 0;
+        //         // Multiplicar por la tasa seleccionada
+        //         item.precio_kg = precioUsd * this.tasaSeleccionada;
+        //         this.calcularItem(index);
+        //     });
+        // },
         
         // =============================================
         // BUSCAR PRODUCTOS
         // =============================================
-        buscarProductos() {
+        
+                buscarProductos() {
             const termino = this.busqueda.trim();
             
             if (termino.length < 2) {
@@ -442,10 +551,28 @@ document.addEventListener('alpine:init', () => {
                 return;
             }
             
-            fetch(`/facturas/buscar-productos?q=${encodeURIComponent(termino)}`)
+            // ⚠️ Requerimos moneda de pago para que el backend
+            // devuelva precios oficiales desde precios_productos
+            if (!this.monedaPago) {
+                this.mostrarAlerta('Selecciona la moneda de pago antes de buscar productos', 'warning');
+                this.productosBusqueda = [];
+                return;
+            }
+            
+            // Necesitamos el moneda_id correspondiente al monedaPago
+            const monedaId = this.monedaIdDesdeCodigo(this.monedaPago);
+            if (!monedaId) {
+                this.mostrarAlerta('Moneda de pago inválida', 'danger');
+                this.productosBusqueda = [];
+                return;
+            }
+            
+            const url = `/facturas/buscar-productos?q=${encodeURIComponent(termino)}&moneda_id=${monedaId}`;
+            
+            fetch(url)
                 .then(response => {
                     if (!response.ok) {
-                        throw new Error('Error en la respuesta');
+                        return response.json().then(err => Promise.reject(err));
                     }
                     return response.json();
                 })
@@ -453,10 +580,50 @@ document.addEventListener('alpine:init', () => {
                     this.productosBusqueda = Array.isArray(data) ? data : [];
                 })
                 .catch(error => {
-                    console.error('Error:', error);
+                    console.error('Error buscando productos:', error);
                     this.productosBusqueda = [];
+                    this.mostrarAlerta(
+                        error?.error || 'Error al buscar productos',
+                        'danger'
+                    );
                 });
         },
+        
+        // Helper: mapea 'USD'/'BS'/'COP' al moneda_id real cargado en la vista
+        monedaIdDesdeCodigo(codigo) {
+            if (!codigo) return null;
+            // this.monedas viene inyectado desde Blade (ver cambio en la vista)
+            const encontrada = this.monedas.find(m => 
+                m.codigo === codigo || 
+                (codigo === 'VES' && m.codigo === 'BS') ||
+                (codigo === 'BS' && m.codigo === 'VES')
+            );
+            return encontrada ? encontrada.id : null;
+        },
+        //* buscarProductos() {
+            // const termino = this.busqueda.trim();
+            
+            // if (termino.length < 2) {
+            //     this.productosBusqueda = [];
+            //     return;
+            // }
+            
+            // fetch(`/facturas/buscar-productos?q=${encodeURIComponent(termino)}`)
+            //     .then(response => {
+            //         if (!response.ok) {
+            //             throw new Error('Error en la respuesta');
+            //         }
+            //         return response.json();
+            //     })
+            //     .then(data => {
+            //         this.productosBusqueda = Array.isArray(data) ? data : [];
+            //     })
+            //     .catch(error => {
+            //         console.error('Error:', error);
+            //         this.productosBusqueda = [];
+            //     });
+        //},
+
         
         limpiarBusqueda() {
             this.busqueda = '';
@@ -477,6 +644,16 @@ document.addEventListener('alpine:init', () => {
                 return;
             }
             
+            // ⚠️ Bloquear si el backend dice que no hay precio oficial
+            if (producto.precio_disponible === false || producto.precio_kg === null || producto.precio_kg === undefined) {
+                this.mostrarAlerta(
+                    `"${producto.nombre}" no tiene precio configurado en ${this.monedaPago}. ` +
+                    `Ejecuta la actualización de precios antes de facturar en esta moneda.`,
+                    'warning'
+                );
+                return;
+            }
+            
             // Verificar si ya existe
             const existente = this.items.find(item => item.id === producto.id);
             if (existente) {
@@ -488,21 +665,22 @@ document.addEventListener('alpine:init', () => {
                 return;
             }
             
-            // Calcular precio según la moneda seleccionada
-            const precioUsd = parseFloat(producto.precio_kg_usd) || 0;
-            const precioMoneda = precioUsd * this.tasaSeleccionada;
+            // ⚠️ Usamos el precio OFICIAL del backend, no lo calculamos
+            const precioOficial = parseFloat(producto.precio_kg);
             
             // Agregar nuevo producto
             this.items.push({
                 id: producto.id,
                 nombre: producto.nombre || 'Sin nombre',
                 sku: producto.sku || 'N/A',
-                precio_kg_usd: precioUsd,
-                precio_kg: precioMoneda,
+                precio_kg: precioOficial,
+                precio_original: precioOficial,  // guardamos copia para recalcular al cambiar moneda
                 cantidad_kg: '',
                 iva_porcentaje: parseFloat(producto.iva_porcentaje) || 0,
                 total_linea: 0,
-                stock_kg: parseFloat(producto.stock_kg) || 0
+                stock_kg: parseFloat(producto.stock_kg) || 0,
+                moneda_codigo: producto.moneda_codigo,
+                moneda_id: producto.moneda_id
             });
             
             const index = this.items.length - 1;
@@ -510,6 +688,50 @@ document.addEventListener('alpine:init', () => {
             this.limpiarBusqueda();
             this.mostrarAlerta(`Producto "${producto.nombre}" agregado`, 'success');
         },
+        // agregarProducto(producto) {
+        //     if (!producto || !producto.id) {
+        //         this.mostrarAlerta('Producto inválido', 'warning');
+        //         return;
+        //     }
+            
+        //     if (parseFloat(producto.stock_kg) <= 0) {
+        //         this.mostrarAlerta('Producto sin stock', 'warning');
+        //         return;
+        //     }
+            
+        //     // Verificar si ya existe
+        //     const existente = this.items.find(item => item.id === producto.id);
+        //     if (existente) {
+        //         existente.cantidad_kg = parseFloat(existente.cantidad_kg) + 0.5;
+        //         const index = this.items.indexOf(existente);
+        //         this.calcularItem(index);
+        //         this.limpiarBusqueda();
+        //         this.mostrarAlerta(`+0.5 Kg de ${producto.nombre}`, 'info');
+        //         return;
+        //     }
+            
+        //     // Calcular precio según la moneda seleccionada
+        //     const precioUsd = parseFloat(producto.precio_kg_usd) || 0;
+        //     const precioMoneda = precioUsd * this.tasaSeleccionada;
+            
+        //     // Agregar nuevo producto
+        //     this.items.push({
+        //         id: producto.id,
+        //         nombre: producto.nombre || 'Sin nombre',
+        //         sku: producto.sku || 'N/A',
+        //         precio_kg_usd: precioUsd,
+        //         precio_kg: precioMoneda,
+        //         cantidad_kg: '',
+        //         iva_porcentaje: parseFloat(producto.iva_porcentaje) || 0,
+        //         total_linea: 0,
+        //         stock_kg: parseFloat(producto.stock_kg) || 0
+        //     });
+            
+        //     const index = this.items.length - 1;
+        //     this.calcularItem(index);
+        //     this.limpiarBusqueda();
+        //     this.mostrarAlerta(`Producto "${producto.nombre}" agregado`, 'success');
+        // },
         
         // =============================================
         // CALCULAR ITEM
@@ -638,9 +860,28 @@ document.addEventListener('alpine:init', () => {
             }
             
             // Validar cantidades
+            // const itemsInvalidos = this.items.filter(item => parseFloat(item.cantidad_kg) <= 0);
+            // if (itemsInvalidos.length > 0) {
+            //     this.mostrarAlerta('Todos los productos deben tener cantidad > 0', 'warning');
+            //     return;
+            // }
+            
+            // this.loading = true;
+                        // Validar cantidades
             const itemsInvalidos = this.items.filter(item => parseFloat(item.cantidad_kg) <= 0);
             if (itemsInvalidos.length > 0) {
                 this.mostrarAlerta('Todos los productos deben tener cantidad > 0', 'warning');
+                return;
+            }
+            
+            // ⚠️ Validar que todos tengan precio oficial
+            const itemsSinPrecio = this.items.filter(item => item.sin_precio || !item.precio_kg || item.precio_kg <= 0);
+            if (itemsSinPrecio.length > 0) {
+                this.mostrarAlerta(
+                    `Estos productos no tienen precio en ${this.monedaPago}: ` +
+                    itemsSinPrecio.map(i => i.nombre).join(', '),
+                    'danger'
+                );
                 return;
             }
             

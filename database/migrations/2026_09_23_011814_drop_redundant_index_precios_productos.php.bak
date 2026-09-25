@@ -1,0 +1,26 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Support\Facades\DB;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        // Índice redundante: ya cubierto por el UNIQUE compuesto
+        // (producto_id, moneda_id) y por la FK de Laravel.
+        $exists = DB::select(
+            "SHOW INDEX FROM precios_productos WHERE Key_name = ?",
+            ['precios_productos_moneda_id_foreign']
+        );
+
+        if (count($exists) > 0) {
+            DB::statement("ALTER TABLE `precios_productos` DROP INDEX `precios_productos_moneda_id_foreign`");
+        }
+    }
+
+    public function down(): void
+    {
+        // No se restaura: era redundante.
+    }
+};

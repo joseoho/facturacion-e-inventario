@@ -1,0 +1,63 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        // ============================================================
+        // PASO 1: Eliminar índices rotos / redundantes
+        // ============================================================
+        $indicesAEliminar = [
+            'precios_productos_unique',                      // UNIQUE(3 cols) mal formado
+            'precios_productos_producto_id_moneda_id_index', // redundante
+            'precios_productos_moneda_id_foreign',           // FK redundante
+            'precios_productos_tasa_cambio_id_index',        // FK redundante
+        ];
+
+        foreach ($indicesAEliminar as $idx) {
+            try {
+                DB::statement("ALTER TABLE `precios_productos` DROP INDEX `{$idx}`");
+            } catch (\Throwable $e) {
+                // Si no existe, continuamos sin problema.
+            }
+        }
+
+        // ============================================================
+        // PASO 2: Crear UNIQUE compuesto correcto
+        // ============================================================
+        // Un solo precio por producto + moneda. Esto es lo que el
+        // negocio necesita para que "actualizarPrecios" sea idempotente
+        // y para que el join en el buscador devuelva una sola fila.
+        // ============================================================
+        Schema::table('precios_productos', function (Blueprint $table) {
+            $table->unique(
+                ['producto_id', 'moneda_id'],
+                'precios_productos_producto_moneda_unique'
+            );
+
+            // Índice para FK a tasa_cambio (necesario para el JOIN
+            // en buscarProductos y para integridad referencial).
+            $table->index('tasa_cambio_id', 'precios_productos_tasa_index');
+
+            // Índice para FK a moneda_id (algunas consultas filtran
+            // solo por moneda, ej: contar precios de una moneda).
+            $table->index('moneda_id', 'precios_productos_moneda_index');
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::table('precios_productos', function (Blueprint $table) {
+            $table->dropUnique('precios_productos_producto_moneda_unique');
+            $table->dropIndex('precios_productos_tasa_index');
+            $table->dropIndex('precios_productos_moneda_index');
+        });
+
+        // No restauramos los índices rotos.
+    }
+};
