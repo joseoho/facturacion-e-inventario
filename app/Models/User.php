@@ -15,12 +15,24 @@ class User extends Authenticatable
     /**
      * ✅ FORZAR: Solo strings en fillable
      */
+        // ============================================================
+    // ROLES DEL SISTEMA — fuente única de verdad
+    // ============================================================
+    public const ROLE_ADMIN    = 'admin';
+    public const ROLE_VENDEDOR = 'vendedor';
+
+    // Lista maestra de roles válidos (útil para validaciones)
+    public const ROLES_VALIDOS = [
+        self::ROLE_ADMIN,
+        self::ROLE_VENDEDOR,
+    ];
+
     protected $fillable = [
         'name',
         'email',
         'password',
         'role',
-        'activo' => true,
+        'activo',
     ];
 
     protected $hidden = [
@@ -30,9 +42,9 @@ class User extends Authenticatable
 
     protected $casts = [
         'email_verified_at' => 'datetime',
-        'password' => 'hashed',
-        'activo' => 'boolean',
-        'deleted_at' => 'datetime',
+        'password'          => 'hashed',
+        'activo'            => 'boolean',
+        'deleted_at'        => 'datetime',
     ];
 
     /**
@@ -43,5 +55,51 @@ class User extends Authenticatable
         // Asegurar que fillable solo contenga strings
         $fillable = array_map('strval', $this->getFillable());
         return array_intersect_key($attributes, array_flip($fillable));
+    }
+
+        // ============================================================
+    // HELPERS DE ROL
+    // ============================================================
+
+    /**
+     * ¿Es administrador? Los admins pasan TODAS las autorizaciones
+     * (vía Gate::before en AppServiceProvider).
+     */
+    public function isAdmin(): bool
+    {
+        return $this->role === self::ROLE_ADMIN;
+    }
+
+    /**
+     * ¿Es vendedor?
+     */
+    public function isVendedor(): bool
+    {
+        return $this->role === self::ROLE_VENDEDOR;
+    }
+
+    /**
+     * ¿Tiene un rol específico?
+     */
+    public function tieneRol(string $role): bool
+    {
+        return $this->role === $role;
+    }
+
+    /**
+     * ¿Tiene alguno de los roles indicados?
+     */
+    public function tieneAlgunRol(array $roles): bool
+    {
+        return in_array($this->role, $roles, true);
+    }
+
+    /**
+     * Scope: usuarios con un rol específico.
+     * Uso: User::delRol('admin')->get();
+     */
+    public function scopeDelRol($query, string $role)
+    {
+        return $query->where('role', $role);
     }
 }

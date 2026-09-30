@@ -108,16 +108,6 @@
                                                     <span class="badge bg-light text-dark mt-1" x-show="monedaPago === 'USD'">✓</span>
                                                     <small class="text-muted" x-show="monedaPago === 'USD'">1 USD</small>
                                                 </button>
-                                                
-                                                {{-- <button type="button" 
-                                                        class="btn flex-grow-1 d-flex flex-column align-items-center py-2"
-                                                        :class="monedaPago === 'VES' ? 'btn-success active' : 'btn-outline-secondary'"
-                                                        @click="seleccionarMonedaPago('VES')">
-                                                    <i class="bi bi-currency-exchange fs-5"></i>
-                                                    <span class="small">VES</span>
-                                                    <span class="badge bg-light text-dark mt-1" x-show="monedaPago === 'VES'">✓</span>
-                                                    <small class="text-muted" x-show="monedaPago === 'VES'" x-text="'1 USD = ' + formatPrecio(tasaVES) + ' VES'"></small>
-                                                </button> --}}
                                                 <button type="button" 
                                                         class="btn flex-grow-1 d-flex flex-column align-items-center py-2"
                                                         :class="monedaPago === 'BS' ? 'btn-success active' : 'btn-outline-secondary'"
@@ -126,15 +116,6 @@
                                                     <span class="small">BS</span>
                                                     <span class="badge bg-light text-dark mt-1" x-show="monedaPago === 'BS'">✓</span>
                                                 </button>
-                                                {{-- <button type="button" 
-                                                        class="btn flex-grow-1 d-flex flex-column align-items-center py-2"
-                                                        :class="monedaPago === 'COP' ? 'btn-success active' : 'btn-outline-secondary'"
-                                                        @click="seleccionarMonedaPago('COP')">
-                                                    <i class="bi bi-currency-exchange fs-5"></i>
-                                                    <span class="small">COP</span>
-                                                    <span class="badge bg-light text-dark mt-1" x-show="monedaPago === 'COP'">✓</span>
-                                                    <small class="text-muted" x-show="monedaPago === 'COP'" x-text="'1 USD = ' + formatPrecio(tasaCOP) + ' COP'"></small>
-                                                </button> --}}
                                                 <button type="button" 
                                                         class="btn flex-grow-1 d-flex flex-column align-items-center py-2"
                                                         :class="monedaPago === 'COP' ? 'btn-success active' : 'btn-outline-secondary'"

@@ -2,27 +2,19 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
+use Illuminate\Http\RedirectResponse;
 
 class HomeController extends Controller
 {
     /**
-     * Create a new controller instance.
+     * El dashboard real vive en `DashboardController@index` (ruta `/`).
      *
-     * @return void
+     * Este controlador existía por compatibilidad con el scaffolding de
+     * laravel/ui, pero renderizaba la vista del dashboard sin pasarle
+     * datos. Ahora simplemente redirige al dashboard real.
      */
-    public function __construct()
+    public function index(): RedirectResponse
     {
-        $this->middleware('auth');
-    }
-
-    /**
-     * Show the application dashboard.
-     *
-     * @return \Illuminate\Contracts\Support\Renderable
-     */
-    public function index()
-    {
-        return view('dashboard.index');
+        return redirect()->route('dashboard');
     }
 }

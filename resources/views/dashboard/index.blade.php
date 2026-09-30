@@ -1,4 +1,16 @@
 @extends('layouts.app')
+@php
+    // Fallback defensivo: si alguien renderiza esta vista sin pasar
+    // las variables esperadas (por ejemplo, un error 500 mal manejado),
+    // evitamos errores "Undefined variable" mostrando un dashboard vacío.
+    $metricas            = $metricas            ?? [];
+    $desgloseMesAnterior = $desgloseMesAnterior ?? [];
+    $alertasStock        = $alertasStock        ?? collect();
+    $ventasSemana        = $ventasSemana        ?? ['labels' => [], 'data' => []];
+    $productosTop        = $productosTop        ?? collect();
+    $ventasCategoria     = $ventasCategoria     ?? collect();
+    $facturasRecientes   = $facturasRecientes   ?? collect();
+@endphp
 @section('content')
 <x-layout title="Dashboard" page-title="Dashboard">
     <div x-data="dashboard()" x-init="init()">
