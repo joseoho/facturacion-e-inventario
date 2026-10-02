@@ -19,8 +19,10 @@ class FacturaController extends Controller
 {
     public function index(Request $request)
     {
-        try {
+        $this->authorize('viewAny', Factura::class);
+         try {
             $clientes = Cliente::orderBy('nombre')->get();
+            // $clientes = Cliente::orderBy('nombre')->get();
             $monedas = Moneda::where('activo', true)->get();
 
             $query = Factura::with(['cliente', 'moneda', 'user'])
@@ -61,6 +63,7 @@ class FacturaController extends Controller
 
         public function create()
     {
+        $this->authorize('create', Factura::class);
         try {
             $clientes = Cliente::where('activo', true)->orderBy('nombre')->get();
 
@@ -147,7 +150,9 @@ class FacturaController extends Controller
     }
 
     public function store(Request $request)
+    
     {
+        $this->authorize('create', Factura::class);
         try {
             $validator = validator($request->all(), [
             'cliente_id'              => 'required|exists:clientes,id',
@@ -379,6 +384,7 @@ class FacturaController extends Controller
     }
     public function show(Factura $factura)
     {
+         $this->authorize('view', $factura);
         try {
             $factura->load(['cliente', 'moneda', 'user', 'lineas.producto']);
             return view('facturas.show', compact('factura'));
@@ -389,146 +395,16 @@ class FacturaController extends Controller
         }
     }
 
-    // public function edit(Factura $factura)
-    // {
-    //     try {
-    //         if ($factura->estado !== 'pendiente') {
-    //             return redirect()->route('facturas.index')
-    //                 ->with('error', 'Solo se pueden editar facturas pendientes');
-    //         }
-
-    //         $clientes = Cliente::orderBy('nombre')->get();
-    //         $monedas = Moneda::where('activa', true)->get();
-    //         $factura->load(['lineas.producto']);
-
-    //         return view('facturas.edit', compact('factura', 'clientes', 'monedas'));
-    //     } catch (Exception $e) {
-    //         Log::error('Error en edit: ' . $e->getMessage());
-    //         return redirect()->route('facturas.index')
-    //             ->with('error', 'Error al cargar el formulario de edición');
-    //     }
-    // }
-
-    // public function update(Request $request, Factura $factura)
-    // {
-    //     try {
-    //         if ($factura->estado !== 'pendiente') {
-    //             return response()->json([
-    //                 'success' => false,
-    //                 'message' => 'Solo se pueden editar facturas pendientes'
-    //             ], 422);
-    //         }
-
-    //         $validator = validator($request->all(), [
-    //             'cliente_id' => 'required|exists:clientes,id',
-    //             'moneda_id' => 'required|exists:monedas,id',
-    //             'productos' => 'required|array|min:1',
-    //             'productos.*.producto_id' => 'required|exists:productos,id',
-    //             'productos.*.cantidad_kg' => 'required|numeric|min:0.001',
-    //             'productos.*.precio_kg' => 'required|numeric|min:0',
-    //         ]);
-
-    //         if ($validator->fails()) {
-    //             return response()->json([
-    //                 'success' => false,
-    //                 'errors' => $validator->errors()
-    //             ], 422);
-    //         }
-
-    //         return response()->json([
-    //             'success' => true,
-    //             'message' => 'Factura actualizada exitosamente'
-    //         ]);
-
-    //     } catch (Exception $e) {
-    //         Log::error('Error en update: ' . $e->getMessage());
-    //         return response()->json([
-    //             'success' => false,
-    //             'message' => 'Error al actualizar la factura'
-    //         ], 500);
-    //     }
-    // }
-
+    
     public function destroy(Factura $factura)
     {
+         $this->authorize('delete', $factura);
         return $this->anular($factura);
     }
 
-//     public function buscarProductos(Request $request)
-// {
-//     try {
-//         $termino = $request->get('q', '');
-        
-//         if (strlen($termino) < 2) {
-//             return response()->json([]);
-//         }
-
-//         // Obtener tasas de cambio de la base de datos
-//         $tasaCOP = TasaCambio::whereHas('moneda', function($q) {
-//             $q->where('codigo', 'COP');
-//         })->latest('fecha')->first();
-        
-//         $tasaVES = TasaCambio::whereHas('moneda', function($q) {
-//             $q->where('codigo', 'VES');
-//         })->latest('fecha')->first();
-
-//         $productos = Producto::where('activo', true)
-//             ->where('stock_kg', '>', 0)
-//             ->where(function($query) use ($termino) {
-//                 $query->where('nombre', 'LIKE', "%{$termino}%")
-//                       ->orWhere('sku', 'LIKE', "%{$termino}%")
-//                       ->orWhere('descripcion', 'LIKE', "%{$termino}%");
-//             })
-//             ->limit(10)
-//             ->get()
-//             ->map(function($producto) use ($tasaCOP, $tasaVES) {
-//                 $precioUsd = $producto->precio_kg_usd ?? 0;
-                
-//                 return [
-//                     'id' => $producto->id,
-//                     'nombre' => $producto->nombre,
-//                     'sku' => $producto->sku ?? 'N/A',
-//                     'stock_kg' => $producto->stock_kg,
-//                     'precio_kg_usd' => $precioUsd,
-//                     'precio_kg_cop' => $precioUsd * ($tasaCOP->tasa ?? 3800),
-//                     'precio_kg_ves' => $precioUsd * ($tasaVES->tasa ?? 36),
-//                     'iva_porcentaje' => $producto->iva_porcentaje ?? 0,
-//                 ];
-//             });
-
-//         return response()->json($productos);
-
-//     } catch (Exception $e) {
-//         Log::error('Error en buscarProductos: ' . $e->getMessage());
-//         return response()->json([]);
-//     }
-// }
-
-    /**
-     * Busca productos activos con stock y devuelve sus precios OFICIALES
-     * (desde `precios_productos`) para la moneda de pago solicitada.
-     *
-     * Query params:
-     *   - q: término de búsqueda (mín. 2 caracteres)
-     *   - moneda_id: id de la moneda en la que se va a facturar
-     */
-        /**
-     * Busca productos activos con stock y calcula su precio en la moneda
-     * solicitada usando la ÚLTIMA tasa vigente registrada por el admin.
-     *
-     * Reglas:
-     *   - USD (moneda base): precio = precio_kg_usd (tasa = 1)
-     *   - BS / COP:          precio = precio_kg_usd × última tasa vigente
-     *
-     * Si no hay tasa para la moneda (solo si el admin nunca la registró),
-     * se devuelve precio_disponible = false y el frontend bloquea la venta.
-     *
-     * Query params:
-     *   - q: término de búsqueda (mín. 2 caracteres)
-     *   - moneda_id: id de la moneda en la que se va a facturar
-     */
     public function buscarProductos(Request $request)
     {
+         $this->authorize('create', Factura::class);
         try {
             $termino = trim((string) $request->get('q', ''));
             $monedaId = $request->get('moneda_id');
@@ -640,6 +516,7 @@ class FacturaController extends Controller
      */
     public function anular(Factura $factura)
     {
+         $this->authorize('anular', $factura);
         try {
             $resultado = DB::transaction(function () use ($factura) {
 
@@ -760,6 +637,7 @@ class FacturaController extends Controller
      */
     public function pagar(Factura $factura)
     {
+        $this->authorize('pagar', $factura);
         try {
             $resultado = DB::transaction(function () use ($factura) {
 
@@ -857,6 +735,7 @@ class FacturaController extends Controller
 
     public function imprimir(Factura $factura)
     {
+        $this->authorize('imprimir', $factura);
         try {
             $factura->load(['cliente', 'moneda', 'lineas.producto']);
             return view('facturas.print', compact('factura'));
