@@ -13,6 +13,7 @@ class CategoriaController extends Controller
      */
     public function index(Request $request)
     {
+         $this->authorize('viewAny', Categoria::class);
         $query = Categoria::query();
 
         // Filtro de búsqueda
@@ -42,6 +43,7 @@ class CategoriaController extends Controller
      */
     public function create()
     {
+        $this->authorize('create', Categoria::class);
         return view('categorias.create');
     }
 
@@ -50,6 +52,7 @@ class CategoriaController extends Controller
      */
     public function store(Request $request)
     {
+        $this->authorize('create', Categoria::class);
         $validator = Validator::make($request->all(), [
             'nombre' => 'required|string|max:100|unique:categorias,nombre',
             'descripcion' => 'nullable|string|max:500',
@@ -77,6 +80,7 @@ class CategoriaController extends Controller
      */
     public function show(Categoria $categoria)
     {
+         $this->authorize('view', $categoria);
         // Cargar los productos relacionados con paginación
         $productos = $categoria->productos()->paginate(10);
         
@@ -88,6 +92,7 @@ class CategoriaController extends Controller
      */
     public function edit(Categoria $categoria)
     {
+        $this->authorize('update', $categoria);
         return view('categorias.edit', compact('categoria'));
     }
 
@@ -96,6 +101,7 @@ class CategoriaController extends Controller
      */
     public function update(Request $request, Categoria $categoria)
     {
+        $this->authorize('update', $categoria);
         $validator = Validator::make($request->all(), [
             'nombre' => 'required|string|max:100|unique:categorias,nombre,' . $categoria->id,
             'descripcion' => 'nullable|string|max:500',
@@ -123,6 +129,7 @@ class CategoriaController extends Controller
      */
     public function destroy(Categoria $categoria)
     {
+        $this->authorize('delete', $categoria);
         // Verificar si la categoría tiene productos asociados
         if ($categoria->productos()->count() > 0) {
             return redirect()->route('categorias.index')

@@ -591,47 +591,64 @@
             
             <!-- Navigation -->
             <ul class="nav flex-column sidebar-nav">
+                {{-- ============================================================ --}}
+                {{-- PRINCIPAL — visible para todos los autenticados            --}}
+                {{-- ============================================================ --}}
                 <li class="nav-section">Principal</li>
                 <li class="nav-item">
                     <a class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}" href="{{ route('dashboard') }}">
-                        <i class="bi bi-grid-1x2"></i> Dashboardd
+                        <i class="bi bi-grid-1x2"></i> Dashboard
                     </a>
                 </li>
-                
-                {{-- @can('vendedor') --}}
+
+                {{-- ============================================================ --}}
+                {{-- FACTURACIÓN — admin y vendedor                            --}}
+                {{-- ============================================================ --}}
                 <li class="nav-section">Facturación</li>
                 <li class="nav-item">
                     <a class="nav-link {{ request()->routeIs('facturas.index') ? 'active' : '' }}" href="{{ route('facturas.index') }}">
                         <i class="bi bi-receipt"></i> Facturas
                     </a>
                 </li>
+                @can('create', App\Models\Factura::class)
                 <li class="nav-item">
                     <a class="nav-link {{ request()->routeIs('facturas.create') ? 'active' : '' }}" href="{{ route('facturas.create') }}">
                         <i class="bi bi-plus-circle"></i> Nueva Factura
                     </a>
                 </li>
-                 {{-- @endcan --}}
-                
+                @endcan
+
+                {{-- ============================================================ --}}
+                {{-- INVENTARIO — visible para todos (ver), acciones solo admin --}}
+                {{-- ============================================================ --}}
                 <li class="nav-section">Inventario</li>
                 <li class="nav-item">
                     <a class="nav-link {{ request()->routeIs('productos.*') ? 'active' : '' }}" href="{{ route('productos.index') }}">
                         <i class="bi bi-box"></i> Productos
                     </a>
                 </li>
+                @can('viewAny', App\Models\Categoria::class)
                 <li class="nav-item">
                     <a class="nav-link {{ request()->routeIs('categorias.*') ? 'active' : '' }}" href="{{ route('categorias.index') }}">
                         <i class="bi bi-tags"></i> Categorías
                     </a>
                 </li>
-                
+                @endcan
+
+                {{-- ============================================================ --}}
+                {{-- CLIENTES — visible para todos                              --}}
+                {{-- ============================================================ --}}
                 <li class="nav-section">Clientes</li>
                 <li class="nav-item">
                     <a class="nav-link {{ request()->routeIs('clientes.*') ? 'active' : '' }}" href="{{ route('clientes.index') }}">
                         <i class="bi bi-people"></i> Clientes
                     </a>
                 </li>
-                
-               {{-- @can('admin') --}} 
+
+                {{-- ============================================================ --}}
+                {{-- ADMINISTRACIÓN — solo admin                                --}}
+                {{-- ============================================================ --}}
+                @can('viewAny', App\Models\Moneda::class)
                 <li class="nav-section">Administración</li>
                 <li class="nav-item">
                     <a class="nav-link {{ request()->routeIs('tasas.*') ? 'active' : '' }}" href="{{ route('tasas.index') }}">
@@ -643,42 +660,33 @@
                         <i class="bi bi-coin"></i> Monedas
                     </a>
                 </li>
-                <li class="nav-item">
-                    <a class="nav-link {{ request()->routeIs('reportes.*') ? 'active' : '' }}" href="{{ route('reportes.stock-bajo') }}">
-                        <i class="bi bi-file-earmark-bar-graph"></i> Reportes
-                    </a>
-                </li> 
+                @endcan
 
-                {{-- @can('admin') --}}
-                    <li class="nav-section">Reportes</li>
-                    <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('reportes.inventario') ? 'active' : '' }}" 
-                        href="{{ route('reportes.inventario') }}">
-                            <i class="bi bi-box-seam"></i> Inventario
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <!-- ✅ Usar 'reportes.stock-bajo' (sin 'productos.') -->
-                        <a class="nav-link {{ request()->routeIs('reportes.stock-bajo') ? 'active' : '' }}" 
-                        href="{{ route('reportes.stock-bajo') }}">
-                            <i class="bi bi-exclamation-triangle"></i> Stock Bajo
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('reportes.ventas.diarias') ? 'active' : '' }}" 
-                        href="{{ route('reportes.ventas.diarias') }}">
-                            <i class="bi bi-graph-up"></i> Ventas Diarias
-                        </a>
-                    </li>
-                    {{-- <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('reportes.facturas') ? 'active' : '' }}" 
-                        href="{{ route('reportes.facturas') }}">
-                            <i class="bi bi-receipt"></i> Facturas
-                        </a>
-                    </li> --}}
-                    {{-- @endcan --}}
-                {{-- @endcan --}}
-                
+                {{-- ============================================================ --}}
+                {{-- REPORTES — solo admin                                      --}}
+                {{-- ============================================================ --}}
+                @can('viewAny', App\Models\TasaCambio::class)
+                <li class="nav-section">Reportes</li>
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('reportes.inventario') ? 'active' : '' }}" href="{{ route('reportes.inventario') }}">
+                        <i class="bi bi-box-seam"></i> Inventario
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('reportes.stock-bajo') ? 'active' : '' }}" href="{{ route('reportes.stock-bajo') }}">
+                        <i class="bi bi-exclamation-triangle"></i> Stock Bajo
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('reportes.ventas.diarias') ? 'active' : '' }}" href="{{ route('reportes.ventas.diarias') }}">
+                        <i class="bi bi-graph-up"></i> Ventas Diarias
+                    </a>
+                </li>
+                @endcan
+
+                {{-- ============================================================ --}}
+                {{-- SISTEMA — visible para todos                              --}}
+                {{-- ============================================================ --}}
                 <li class="nav-section">Sistema</li>
                 <li class="nav-item">
                     <form method="POST" action="{{ route('logout') }}" class="d-inline">
@@ -705,17 +713,17 @@
                         </h6>
                     </div>
                     
-                    {{-- <div class="user-menu">
-                         <span class="d-none d-md-inline text-sm text-muted" style="font-size:0.85rem;">
-                            {{ Auth::users()->name }}
-                        </span> 
+                    <div class="user-menu">
+                        <span class="d-none d-md-inline text-sm text-muted" style="font-size:0.85rem;">
+                            {{ Auth::user()->name }}
+                        </span>
                         <span class="badge bg-primary-subtle text-primary-emphasis rounded-pill px-3 py-1" style="font-size:0.7rem;font-weight:500;">
-                            {{ ucfirst(Auth::users()->role) }}
-                        </span> 
+                            {{ ucfirst(Auth::user()->role) }}
+                        </span>
                         <div class="user-avatar">
-                            {{ strtoupper(substr(Auth::users()->name, 0, 2)) }}
-                        </div> 
-                    </div> --}}
+                            {{ strtoupper(substr(Auth::user()->name, 0, 2)) }}
+                        </div>
+                    </div>
                 </div>
             </header>
             
@@ -776,7 +784,6 @@
             return {
                 sidebarOpen: false,
                 init() {
-                    // Cerrar sidebar al hacer click fuera en desktop
                     document.addEventListener('click', (e) => {
                         if (window.innerWidth >= 992) return;
                         const sidebar = document.querySelector('.sidebar');
@@ -795,7 +802,6 @@
             }
         }
         
-        // Auto-remover toasts después de 5 segundos
         document.addEventListener('DOMContentLoaded', function() {
             document.querySelectorAll('.toast-custom').forEach((toast, index) => {
                 setTimeout(() => {

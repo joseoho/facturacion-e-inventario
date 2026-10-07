@@ -13,6 +13,7 @@ class ClienteController extends Controller
      */
     public function index(Request $request)
     {
+        $this->authorize('viewAny', Cliente::class);
         $clientes = Cliente::query()
             ->when($request->search, function ($query, $search) {
                 return $query->where('nombre', 'LIKE', "%{$search}%")
@@ -41,6 +42,7 @@ class ClienteController extends Controller
      */
     public function create()
     {
+        $this->authorize('create', Cliente::class);
         $cliente = new Cliente();
         $tiposCliente = ['minorista', 'mayorista', 'corporativo', 'otro'];
         $tiposDocumento = ['J','V','G','E','OTRO'];
@@ -53,6 +55,7 @@ class ClienteController extends Controller
      */
     public function store(Request $request)
     {
+        $this->authorize('create', Cliente::class);
         $validated = $request->validate([
             'nombre' => 'required|string|max:255',
             'documento' => 'required|string|max:50|unique:clientes,documento',
@@ -82,6 +85,7 @@ class ClienteController extends Controller
      */
     public function show(Cliente $cliente)
     {
+        $this->authorize('view', $cliente);
         // Cargar facturas recientes
         $facturasRecientes = $cliente->facturas()
             ->orderBy('created_at', 'desc')
@@ -103,6 +107,7 @@ class ClienteController extends Controller
      */
     public function edit(Cliente $cliente)
     {
+        $this->authorize('update', $cliente);
         $tiposCliente = ['minorista', 'mayorista', 'corporativo', 'otro'];
         $tiposDocumento = ['J','V','G','E','OTRO'];
         
@@ -114,6 +119,7 @@ class ClienteController extends Controller
      */
     public function update(Request $request, Cliente $cliente)
     {
+        $this->authorize('update', $cliente);
         $validated = $request->validate([
             'nombre' => 'required|string|max:255',
             'documento' => 'required|string|max:50|unique:clientes,documento,' . $cliente->id,
@@ -143,6 +149,7 @@ class ClienteController extends Controller
      */
     public function destroy(Cliente $cliente)
     {
+        $this->authorize('delete', $cliente);
         // Verificar si tiene facturas asociadas
         if ($cliente->facturas()->exists()) {
             return redirect()
@@ -162,6 +169,7 @@ class ClienteController extends Controller
      */
     public function facturas(Cliente $cliente)
     {
+        $this->authorize('verFacturas', $cliente);
         $facturas = $cliente->facturas()
             ->orderBy('created_at', 'desc')
             ->paginate(15);

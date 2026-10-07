@@ -13,6 +13,7 @@ class MonedaController extends Controller
      */
     public function index(Request $request)
     {
+         $this->authorize('viewAny', Moneda::class);
         $query = Moneda::query();
 
         // Filtro de búsqueda
@@ -41,6 +42,7 @@ class MonedaController extends Controller
      */
     public function create()
     {
+         $this->authorize('create', Moneda::class);
         return view('monedas.create');
     }
 
@@ -49,6 +51,7 @@ class MonedaController extends Controller
      */
     public function store(Request $request)
     {
+         $this->authorize('create', Moneda::class);
         $validated = $request->validate([
             'codigo' => ['required', 'string', 'max:3', 'unique:monedas,codigo'],
             'nombre' => ['required', 'string', 'max:100'],
@@ -80,6 +83,7 @@ class MonedaController extends Controller
      */
     public function show(Moneda $moneda)
     {
+         $this->authorize('view', $moneda);
         // Cargar relaciones para mostrar información adicional
         $moneda->load(['tasasCambio' => function($query) {
             $query->latest('fecha')->limit(5);
@@ -96,6 +100,7 @@ class MonedaController extends Controller
      */
     public function edit(Moneda $moneda)
     {
+          $this->authorize('update', $moneda);
         return view('monedas.edit', compact('moneda'));
     }
 
@@ -104,6 +109,7 @@ class MonedaController extends Controller
      */
     public function update(Request $request, Moneda $moneda)
     {
+          $this->authorize('update', $moneda);
         $validated = $request->validate([
             'codigo' => ['required', 'string', 'max:3', Rule::unique('monedas')->ignore($moneda->id)],
             'nombre' => ['required', 'string', 'max:100'],
@@ -150,6 +156,7 @@ class MonedaController extends Controller
      */
     public function destroy(Moneda $moneda)
     {
+        $this->authorize('delete', $moneda);
         // Verificar si la moneda tiene relaciones
         if ($moneda->facturas()->exists()) {
             return back()->with('error', 'No se puede eliminar la moneda porque tiene facturas asociadas.');

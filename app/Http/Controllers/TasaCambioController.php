@@ -21,6 +21,7 @@ class TasaCambioController extends Controller
      */
     public function index(Request $request)
     {
+        $this->authorize('viewAny', TasaCambio::class);
         // Configurar paginación
         $perPage = $request->input('per_page', 20);
         $sort = $request->input('sort', 'fecha');
@@ -140,6 +141,7 @@ class TasaCambioController extends Controller
      */
     public function create()
     {
+        $this->authorize('create', TasaCambio::class);
         $monedas = Moneda::all();
         $tasaCambio = new TasaCambio();
         return view('tasas-cambio.create', compact('monedas', 'tasaCambio'));
@@ -150,6 +152,7 @@ class TasaCambioController extends Controller
      */
     public function store(Request $request)
     {
+        $this->authorize('create', TasaCambio::class);
         $validator = Validator::make($request->all(), [
             'moneda_id' => 'required|exists:monedas,id',
             'tasa' => 'required|numeric|min:0.000001',
@@ -205,7 +208,10 @@ class TasaCambioController extends Controller
      * Mostrar una tasa específica
      */
     public function show($id)
+    
     {
+        $tasaCambio = TasaCambio::findOrFail($id);
+        $this->authorize('view', $tasaCambio);
         $tasaCambio = TasaCambio::with(['moneda', 'user'])->findOrFail($id);
         return view('tasas-cambio.show', compact('tasaCambio'));
     }
@@ -215,7 +221,8 @@ class TasaCambioController extends Controller
      */
     public function edit($id)
     {
-        $tasaCambio = TasaCambio::findOrFail($id);
+         $tasaCambio = TasaCambio::findOrFail($id);
+        $this->authorize('update', $tasaCambio);
         $monedas = Moneda::all();
         return view('tasas-cambio.edit', compact('tasaCambio', 'monedas'));
     }
@@ -225,6 +232,8 @@ class TasaCambioController extends Controller
      */
     public function update(Request $request, $id)
     {
+        $tasaCambio = TasaCambio::findOrFail($id);
+        $this->authorize('update', $tasaCambio);
         $validator = Validator::make($request->all(), [
             'moneda_id' => 'required|exists:monedas,id',
             'tasa' => 'required|numeric|min:0.000001',
@@ -263,6 +272,8 @@ class TasaCambioController extends Controller
      */
     public function destroy($id)
     {
+        $tasaCambio = TasaCambio::findOrFail($id);
+        $this->authorize('delete', $tasaCambio);
         try {
             $tasaCambio = TasaCambio::findOrFail($id);
             
@@ -302,6 +313,8 @@ class TasaCambioController extends Controller
      */
     public function duplicate($id)
     {
+        $tasaCambio = TasaCambio::findOrFail($id);
+        $this->authorize('create', TasaCambio::class);
         try {
             $tasaOriginal = TasaCambio::findOrFail($id);
             
@@ -326,6 +339,7 @@ class TasaCambioController extends Controller
      */
     public function historial(Request $request)
     {
+         $this->authorize('viewAny', TasaCambio::class);
         $query = TasaCambio::with(['moneda', 'user']);
 
         if ($request->filled('moneda_id')) {
@@ -346,72 +360,7 @@ class TasaCambioController extends Controller
         return view('tasas-cambio.historial', compact('historial', 'monedas'));
     }
 
-    /**
-     * Ejecutar actualización masiva de precios
-     */
-    // // public function actualizarPrecios(Request $request)
-    // // {
-    // //     $validator = Validator::make($request->all(), [
-    // //         'tasa_cambio_id' => 'required|exists:tasas_cambio,id',
-    // //     ]);
-
-    // //     if ($validator->fails()) {
-    // //         return response()->json([
-    // //             'success' => false,
-    // //             'errors' => $validator->errors()
-    // //         ], 422);
-    // //     }
-
-    // //     try {
-    // //         $tasa = TasaCambio::findOrFail($request->tasa_cambio_id);
-
-    // //         if ($tasa->moneda->es_base) {
-    // //             return response()->json([
-    // //                 'success' => false,
-    // //                 'message' => 'No se puede actualizar precios con la moneda base.'
-    // //             ], 400);
-    // //         }
-
-    // //         // Despachar el job
-    // //         $job = new ActualizarPreciosProductosJob($tasa, Auth::id());
-    // //         dispatch($job);
-
-    // //         // Registrar la actualización
-    // //         ActualizacionPrecio::create([
-    // //             'fecha_ejecucion' => now(),
-    // //             'usuario_id' => Auth::id(),
-    // //             'tasa_cambio_id' => $tasa->id,
-    // //             'estado' => 'en_proceso',
-    // //             'detalles' => json_encode([
-    // //                 'moneda' => $tasa->moneda->codigo,
-    // //                 'tasa' => $tasa->tasa,
-    // //                 'iniciado_por' => Auth::user()->name
-    // //             ])
-    // //         ]);
-
-    // //         Log::info('Actualización de precios iniciada', [
-    // //             'user_id' => Auth::id(),
-    // //             'tasa_id' => $tasa->id,
-    // //             'moneda' => $tasa->moneda->codigo,
-    // //             'tasa_valor' => $tasa->tasa
-    // //         ]);
-
-    // //         return response()->json([
-    // //             'success' => true,
-    // //             'message' => 'Actualización de precios iniciada correctamente. Los precios se actualizarán en segundo plano.',
-    // //             'tasa_id' => $tasa->id
-    // //         ]);
-
-    // //     } catch (\Exception $e) {
-    // //         Log::error('Error al iniciar actualización de precios: ' . $e->getMessage());
-            
-    // //         return response()->json([
-    // //             'success' => false,
-    // //             'message' => 'Error al iniciar la actualización: ' . $e->getMessage()
-    // //         ], 500);
-    // //     }
-    // }
-
+    
     /**
      * Obtener las últimas tasas de cambio para todas las monedas - CORREGIDO
      */
@@ -496,6 +445,7 @@ class TasaCambioController extends Controller
 
 public function actualizarPrecios(Request $request)
 {
+    $this->authorize('actualizarPrecios', TasaCambio::class);
     try {
         DB::beginTransaction();
 

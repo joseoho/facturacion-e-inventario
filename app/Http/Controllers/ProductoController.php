@@ -13,11 +13,13 @@ use Illuminate\Support\Str;
 
 class ProductoController extends Controller
 {
+    
     /**
      * Display a listing of the resource.
      */
     public function index(Request $request)
     {
+        $this->authorize('viewAny', Producto::class);
         $query = Producto::with('categoria');
 
         // Búsqueda por nombre, sku o descripción
@@ -56,6 +58,7 @@ class ProductoController extends Controller
      */
     public function create()
     {
+        $this->authorize('create', Producto::class);
         $categorias = Categoria::where('activo', true)->orderBy('nombre')->get();
         $monedas = Moneda::where('activo', true)->get();
         
@@ -67,6 +70,7 @@ class ProductoController extends Controller
      */
     public function store(Request $request)
     {
+         $this->authorize('create', Producto::class);
         $validated = $request->validate([
             'sku' => 'required|string|max:50|unique:productos,sku',
             'nombre' => 'required|string|max:200',
@@ -113,6 +117,7 @@ class ProductoController extends Controller
      */
     public function show(Producto $producto)
     {
+         $this->authorize('view', $producto);
         $producto->load(['categoria', 'preciosProductos.moneda', 'preciosProductos.tasaCambio']);
         
         return view('productos.show', compact('producto'));
@@ -123,6 +128,7 @@ class ProductoController extends Controller
      */
     public function edit(Producto $producto)
     {
+         $this->authorize('update', $producto);
         $categorias = Categoria::where('activo', true)->orderBy('nombre')->get();
         $monedas = Moneda::where('activo', true)->get();
         $producto->load('preciosProductos');
@@ -135,6 +141,7 @@ class ProductoController extends Controller
      */
     public function update(Request $request, Producto $producto)
     {
+         $this->authorize('update', $producto);
         $validated = $request->validate([
             'sku' => 'required|string|max:50|unique:productos,sku,' . $producto->id,
             'nombre' => 'required|string|max:200',
@@ -175,6 +182,7 @@ class ProductoController extends Controller
      */
     public function destroy(Producto $producto)
     {
+        $this->authorize('delete', $producto);
         try {
             // Eliminar imagen si existe
             if ($producto->imagen && Storage::disk('public')->exists($producto->imagen)) {
@@ -196,6 +204,7 @@ class ProductoController extends Controller
      */
     public function precios(Producto $producto)
     {
+         $this->authorize('gestionarPrecios', $producto);
         $producto->load('preciosProductos.moneda', 'preciosProductos.tasaCambio');
         $monedas = Moneda::where('activo', true)->get();
         $tasasCambio = TasaCambio::where('tasa', true)->get();
@@ -208,6 +217,7 @@ class ProductoController extends Controller
      */
     public function storePrecio(Request $request, Producto $producto)
     {
+        $this->authorize('gestionarPrecios', $producto);
         $validated = $request->validate([
             'moneda_id' => 'required|exists:monedas,id',
             'tasa_cambio_id' => 'required|exists:tasas_cambio,id',
@@ -225,6 +235,7 @@ class ProductoController extends Controller
      */
     public function destroyPrecio(PrecioProducto $precio)
     {
+        $this->authorize('gestionarPrecios', $precio->producto);
         $productoId = $precio->producto_id;
         $precio->delete();
 
