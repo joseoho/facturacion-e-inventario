@@ -2,17 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ActualizacionPrecio;
 use App\Models\Moneda;
-use Illuminate\Support\Facades\Auth;
-use App\Models\TasaCambio;
 use App\Models\PrecioProducto;
 use App\Models\Producto;
-use App\Models\ActualizacionPrecio;
+use App\Models\TasaCambio;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-
+use Illuminate\Support\Facades\Validator;
 
 class TasaCambioController extends Controller
 {
@@ -26,13 +25,13 @@ class TasaCambioController extends Controller
         $perPage = $request->input('per_page', 20);
         $sort = $request->input('sort', 'fecha');
         $direction = $request->input('direction', 'desc');
-        
+
         // Validar campos de ordenamiento permitidos
         $allowedSorts = ['id', 'moneda_id', 'tasa', 'fecha', 'user_id'];
-        if (!in_array($sort, $allowedSorts)) {
+        if (! in_array($sort, $allowedSorts)) {
             $sort = 'fecha';
         }
-        
+
         // Construir consulta base
         $query = TasaCambio::with(['moneda', 'user']);
 
@@ -101,15 +100,15 @@ class TasaCambioController extends Controller
         // Filtro por búsqueda
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
-                $q->whereHas('moneda', function($sub) use ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->whereHas('moneda', function ($sub) use ($search) {
                     $sub->where('nombre', 'LIKE', "%{$search}%")
                         ->orWhere('codigo', 'LIKE', "%{$search}%");
                 })
-                ->orWhere('tasa', 'LIKE', "%{$search}%")
-                ->orWhereHas('user', function($sub) use ($search) {
-                    $sub->where('name', 'LIKE', "%{$search}%");
-                });
+                    ->orWhere('tasa', 'LIKE', "%{$search}%")
+                    ->orWhereHas('user', function ($sub) use ($search) {
+                        $sub->where('name', 'LIKE', "%{$search}%");
+                    });
             });
         }
     }
@@ -120,18 +119,18 @@ class TasaCambioController extends Controller
     private function getStatistics()
     {
         $ultimaActualizacion = ActualizacionPrecio::latest('fecha_ejecucion')->first();
-        
+
         return [
             'total' => TasaCambio::count(),
             'ultima_fecha' => TasaCambio::latest('fecha')->first()?->fecha,
             'tasa_promedio' => TasaCambio::avg('tasa'),
             'tasa_max' => TasaCambio::max('tasa'),
             'tasa_min' => TasaCambio::min('tasa'),
-            'total_productos' => \App\Models\Producto::count(),
-            'total_precios' => \App\Models\PrecioProducto::count(),
+            'total_productos' => Producto::count(),
+            'total_precios' => PrecioProducto::count(),
             'monedas_activas' => Moneda::count(), // 👈 Cambiado: contar todas las monedas
-            'ultima_actualizacion' => $ultimaActualizacion 
-                ? $ultimaActualizacion->fecha_ejecucion->format('d/m/Y H:i') 
+            'ultima_actualizacion' => $ultimaActualizacion
+                ? $ultimaActualizacion->fecha_ejecucion->format('d/m/Y H:i')
                 : 'Nunca',
         ];
     }
@@ -143,7 +142,8 @@ class TasaCambioController extends Controller
     {
         $this->authorize('create', TasaCambio::class);
         $monedas = Moneda::all();
-        $tasaCambio = new TasaCambio();
+        $tasaCambio = new TasaCambio;
+
         return view('tasas-cambio.create', compact('monedas', 'tasaCambio'));
     }
 
@@ -175,7 +175,7 @@ class TasaCambioController extends Controller
             if ($existente) {
                 $existente->update([
                     'tasa' => $request->tasa,
-                    'user_id' => Auth::id()
+                    'user_id' => Auth::id(),
                 ]);
                 $mensaje = 'Tasa de cambio actualizada correctamente.';
             } else {
@@ -183,7 +183,7 @@ class TasaCambioController extends Controller
                     'moneda_id' => $request->moneda_id,
                     'tasa' => $request->tasa,
                     'fecha' => $request->fecha,
-                    'user_id' => Auth::id()
+                    'user_id' => Auth::id(),
                 ]);
                 $mensaje = 'Tasa de cambio registrada correctamente.';
             }
@@ -196,10 +196,10 @@ class TasaCambioController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error al guardar tasa de cambio: ' . $e->getMessage());
-            
+            Log::error('Error al guardar tasa de cambio: '.$e->getMessage());
+
             return back()
-                ->with('error', 'Error al guardar la tasa de cambio: ' . $e->getMessage())
+                ->with('error', 'Error al guardar la tasa de cambio: '.$e->getMessage())
                 ->withInput();
         }
     }
@@ -208,11 +208,11 @@ class TasaCambioController extends Controller
      * Mostrar una tasa específica
      */
     public function show($id)
-    
     {
         $tasaCambio = TasaCambio::findOrFail($id);
         $this->authorize('view', $tasaCambio);
         $tasaCambio = TasaCambio::with(['moneda', 'user'])->findOrFail($id);
+
         return view('tasas-cambio.show', compact('tasaCambio'));
     }
 
@@ -221,9 +221,10 @@ class TasaCambioController extends Controller
      */
     public function edit($id)
     {
-         $tasaCambio = TasaCambio::findOrFail($id);
+        $tasaCambio = TasaCambio::findOrFail($id);
         $this->authorize('update', $tasaCambio);
         $monedas = Moneda::all();
+
         return view('tasas-cambio.edit', compact('tasaCambio', 'monedas'));
     }
 
@@ -252,7 +253,7 @@ class TasaCambioController extends Controller
                 'moneda_id' => $request->moneda_id,
                 'tasa' => $request->tasa,
                 'fecha' => $request->fecha,
-                'user_id' => Auth::id()
+                'user_id' => Auth::id(),
             ]);
 
             return redirect()
@@ -260,9 +261,10 @@ class TasaCambioController extends Controller
                 ->with('success', 'Tasa de cambio actualizada correctamente.');
 
         } catch (\Exception $e) {
-            Log::error('Error al actualizar tasa: ' . $e->getMessage());
+            Log::error('Error al actualizar tasa: '.$e->getMessage());
+
             return back()
-                ->with('error', 'Error al actualizar la tasa: ' . $e->getMessage())
+                ->with('error', 'Error al actualizar la tasa: '.$e->getMessage())
                 ->withInput();
         }
     }
@@ -276,34 +278,35 @@ class TasaCambioController extends Controller
         $this->authorize('delete', $tasaCambio);
         try {
             $tasaCambio = TasaCambio::findOrFail($id);
-            
+
             // Verificar si tiene relaciones
             if (method_exists($tasaCambio, 'preciosProductos') && $tasaCambio->preciosProductos()->exists()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'No se puede eliminar esta tasa porque tiene precios de productos asociados.'
+                    'message' => 'No se puede eliminar esta tasa porque tiene precios de productos asociados.',
                 ], 422);
             }
-            
+
             if (method_exists($tasaCambio, 'facturas') && $tasaCambio->facturas()->exists()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'No se puede eliminar esta tasa porque tiene facturas asociadas.'
+                    'message' => 'No se puede eliminar esta tasa porque tiene facturas asociadas.',
                 ], 422);
             }
-            
+
             $tasaCambio->delete();
-            
+
             return response()->json([
                 'success' => true,
-                'message' => 'Tasa de cambio eliminada exitosamente.'
+                'message' => 'Tasa de cambio eliminada exitosamente.',
             ]);
-            
+
         } catch (\Exception $e) {
-            Log::error('Error al eliminar tasa: ' . $e->getMessage());
+            Log::error('Error al eliminar tasa: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Error al eliminar la tasa: ' . $e->getMessage()
+                'message' => 'Error al eliminar la tasa: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -317,7 +320,7 @@ class TasaCambioController extends Controller
         $this->authorize('create', TasaCambio::class);
         try {
             $tasaOriginal = TasaCambio::findOrFail($id);
-            
+
             $nuevaTasa = $tasaOriginal->replicate();
             $nuevaTasa->fecha = now()->toDateString();
             $nuevaTasa->user_id = Auth::id();
@@ -328,9 +331,10 @@ class TasaCambioController extends Controller
                 ->with('success', 'Tasa duplicada correctamente.');
 
         } catch (\Exception $e) {
-            Log::error('Error al duplicar tasa: ' . $e->getMessage());
+            Log::error('Error al duplicar tasa: '.$e->getMessage());
+
             return back()
-                ->with('error', 'Error al duplicar la tasa: ' . $e->getMessage());
+                ->with('error', 'Error al duplicar la tasa: '.$e->getMessage());
         }
     }
 
@@ -339,7 +343,7 @@ class TasaCambioController extends Controller
      */
     public function historial(Request $request)
     {
-         $this->authorize('viewAny', TasaCambio::class);
+        $this->authorize('viewAny', TasaCambio::class);
         $query = TasaCambio::with(['moneda', 'user']);
 
         if ($request->filled('moneda_id')) {
@@ -360,7 +364,6 @@ class TasaCambioController extends Controller
         return view('tasas-cambio.historial', compact('historial', 'monedas'));
     }
 
-    
     /**
      * Obtener las últimas tasas de cambio para todas las monedas - CORREGIDO
      */
@@ -370,12 +373,12 @@ class TasaCambioController extends Controller
             // Obtener todas las monedas (sin filtro de 'activa')
             $monedas = Moneda::all();
             $tasas = [];
-            
+
             foreach ($monedas as $moneda) {
                 $tasa = TasaCambio::where('moneda_id', $moneda->id)
                     ->latest('fecha')
                     ->first();
-                    
+
                 if ($tasa) {
                     $tasas[] = [
                         'id' => $tasa->id,
@@ -384,17 +387,18 @@ class TasaCambioController extends Controller
                         'nombre' => $moneda->nombre,
                         'tasa' => $tasa->tasa,
                         'fecha' => $tasa->fecha->format('Y-m-d H:i:s'),
-                        'es_base' => $moneda->es_base
+                        'es_base' => $moneda->es_base,
                     ];
                 }
             }
-            
+
             return response()->json($tasas);
         } catch (\Exception $e) {
-            Log::error('Error al obtener últimas tasas: ' . $e->getMessage());
+            Log::error('Error al obtener últimas tasas: '.$e->getMessage());
+
             return response()->json([
                 'error' => 'Error al obtener las tasas',
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 500);
         }
     }
@@ -420,14 +424,14 @@ class TasaCambioController extends Controller
 
         $tasas = $query->latest('fecha')->get();
 
-        $filename = 'tasas_cambio_' . date('Y-m-d_His') . '.csv';
+        $filename = 'tasas_cambio_'.date('Y-m-d_His').'.csv';
         $handle = fopen('php://output', 'w');
-        
+
         header('Content-Type: text/csv');
-        header('Content-Disposition: attachment; filename="' . $filename . '"');
-        
+        header('Content-Disposition: attachment; filename="'.$filename.'"');
+
         fputcsv($handle, ['ID', 'Moneda', 'Código', 'Tasa', 'Fecha', 'Registrado por']);
-        
+
         foreach ($tasas as $tasa) {
             fputcsv($handle, [
                 $tasa->id,
@@ -435,60 +439,61 @@ class TasaCambioController extends Controller
                 $tasa->moneda->codigo,
                 number_format($tasa->tasa, 6),
                 $tasa->fecha->format('Y-m-d H:i:s'),
-                $tasa->user ? $tasa->user->name : 'N/A'
+                $tasa->user ? $tasa->user->name : 'N/A',
             ]);
         }
-        
+
         fclose($handle);
         exit;
     }
 
-public function actualizarPrecios(Request $request)
-{
-    $this->authorize('actualizarPrecios', TasaCambio::class);
-    try {
-        DB::beginTransaction();
+    public function actualizarPrecios(Request $request)
+    {
+        $this->authorize('actualizarPrecios', TasaCambio::class);
+        try {
+            DB::beginTransaction();
 
-        // 1. Validar
-        $validator = Validator::make($request->all(), [
-            'tasa_cambio_id' => 'required|exists:tasas_cambio,id',
-        ]);
+            // 1. Validar
+            $validator = Validator::make($request->all(), [
+                'tasa_cambio_id' => 'required|exists:tasas_cambio,id',
+            ]);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'errors' => $validator->errors()
-            ], 422);
-        }
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => $validator->errors(),
+                ], 422);
+            }
 
-        // 2. Obtener la tasa seleccionada
-        $tasaSeleccionada = TasaCambio::with('moneda')->find($request->tasa_cambio_id);
-        
-        if (!$tasaSeleccionada || $tasaSeleccionada->moneda->es_base || $tasaSeleccionada->tasa <= 0) {
-            DB::rollBack();
-            return response()->json([
-                'success' => false,
-                'message' => 'Tasa de cambio inválida o es la moneda base.'
-            ], 400);
-        }
+            // 2. Obtener la tasa seleccionada
+            $tasaSeleccionada = TasaCambio::with('moneda')->find($request->tasa_cambio_id);
 
-        // 3. Obtener tasa base (si no existe, usar 1)
-        $tasaBaseValor = TasaCambio::whereHas('moneda', function($q) {
-            $q->where('es_base', true);
-        })->latest('fecha')->value('tasa') ?? 1.000000;
+            if (! $tasaSeleccionada || $tasaSeleccionada->moneda->es_base || $tasaSeleccionada->tasa <= 0) {
+                DB::rollBack();
 
-        // 4. Obtener ID del usuario
-        $userId = Auth::id() ?? DB::table('users')->value('id') ?? 1;
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tasa de cambio inválida o es la moneda base.',
+                ], 400);
+            }
 
-        // 5. ACTUALIZACIÓN MASIVA CON SQL DIRECTO - FÓRMULA CORREGIDA
-        // 5.1 Eliminar precios antiguos
-        DB::table('precios_productos')
-            ->where('moneda_id', $tasaSeleccionada->moneda_id)
-            ->delete();
+            // 3. Obtener tasa base (si no existe, usar 1)
+            $tasaBaseValor = TasaCambio::whereHas('moneda', function ($q) {
+                $q->where('es_base', true);
+            })->latest('fecha')->value('tasa') ?? 1.000000;
 
-        // 5.2 Insertar nuevos precios en UNA sola consulta
-        // ✅ FÓRMULA CORRECTA: Precio en moneda local = (Precio USD × Tasa Base) × Tasa de la moneda
-        $insertados = DB::statement("
+            // 4. Obtener ID del usuario
+            $userId = Auth::id() ?? DB::table('users')->value('id') ?? 1;
+
+            // 5. ACTUALIZACIÓN MASIVA CON SQL DIRECTO - FÓRMULA CORREGIDA
+            // 5.1 Eliminar precios antiguos
+            DB::table('precios_productos')
+                ->where('moneda_id', $tasaSeleccionada->moneda_id)
+                ->delete();
+
+            // 5.2 Insertar nuevos precios en UNA sola consulta
+            // ✅ FÓRMULA CORRECTA: Precio en moneda local = (Precio USD × Tasa Base) × Tasa de la moneda
+            $insertados = DB::statement('
             INSERT INTO precios_productos (producto_id, moneda_id, tasa_cambio_id, precio_kg, created_at, updated_at)
             SELECT 
                 p.id as producto_id,
@@ -500,61 +505,61 @@ public function actualizarPrecios(Request $request)
             FROM productos p
             WHERE p.activo = 1 
             AND p.precio_kg_usd > 0
-        ", [
-            $tasaSeleccionada->moneda_id,
-            $tasaSeleccionada->id,
-            $tasaBaseValor,      // Tasa base (normalmente 1.00)
-            $tasaSeleccionada->tasa  // Tasa de la moneda destino (ej: 764.35)
-        ]);
-
-        // 6. Contar productos actualizados
-        $totalProductos = DB::table('precios_productos')
-            ->where('moneda_id', $tasaSeleccionada->moneda_id)
-            ->count();
-
-        // 7. Guardar registro de actualización
-        try {
-            ActualizacionPrecio::create([
-                'user_id' => $userId,
-                'fecha_ejecucion' => now(),
-                'monedas_actualizadas' => json_encode([
-                    'moneda_id' => $tasaSeleccionada->moneda_id,
-                    'moneda_codigo' => $tasaSeleccionada->moneda->codigo,
-                    'moneda_nombre' => $tasaSeleccionada->moneda->nombre,
-                    'tasa_usada' => $tasaSeleccionada->tasa,
-                    'tasa_base' => $tasaBaseValor,
-                    'formula_usada' => '(Precio_USD × Tasa_Base) × Tasa_Moneda'
-                ]),
-                'cantidad_productos' => $totalProductos,
+        ', [
+                $tasaSeleccionada->moneda_id,
+                $tasaSeleccionada->id,
+                $tasaBaseValor,      // Tasa base (normalmente 1.00)
+                $tasaSeleccionada->tasa,  // Tasa de la moneda destino (ej: 764.35)
             ]);
+
+            // 6. Contar productos actualizados
+            $totalProductos = DB::table('precios_productos')
+                ->where('moneda_id', $tasaSeleccionada->moneda_id)
+                ->count();
+
+            // 7. Guardar registro de actualización
+            try {
+                ActualizacionPrecio::create([
+                    'user_id' => $userId,
+                    'fecha_ejecucion' => now(),
+                    'monedas_actualizadas' => json_encode([
+                        'moneda_id' => $tasaSeleccionada->moneda_id,
+                        'moneda_codigo' => $tasaSeleccionada->moneda->codigo,
+                        'moneda_nombre' => $tasaSeleccionada->moneda->nombre,
+                        'tasa_usada' => $tasaSeleccionada->tasa,
+                        'tasa_base' => $tasaBaseValor,
+                        'formula_usada' => '(Precio_USD × Tasa_Base) × Tasa_Moneda',
+                    ]),
+                    'cantidad_productos' => $totalProductos,
+                ]);
+            } catch (\Exception $e) {
+                Log::warning('No se pudo guardar registro: '.$e->getMessage());
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => "✅ ¡$totalProductos precios actualizados en ".$tasaSeleccionada->moneda->codigo.'!',
+                'productos_actualizados' => $totalProductos,
+                'moneda' => $tasaSeleccionada->moneda->codigo,
+                'tasa_usada' => $tasaSeleccionada->tasa,
+                'ejemplo_calculo' => [
+                    'precio_usd' => '8.75',
+                    'tasa_base' => $tasaBaseValor,
+                    'tasa_moneda' => $tasaSeleccionada->tasa,
+                    'resultado' => round(8.75 * $tasaBaseValor * $tasaSeleccionada->tasa, 4),
+                ],
+            ]);
+
         } catch (\Exception $e) {
-            Log::warning('No se pudo guardar registro: ' . $e->getMessage());
+            DB::rollBack();
+            Log::error('Error en actualizarPrecios: '.$e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => '❌ Error: '.$e->getMessage(),
+            ], 500);
         }
-
-        DB::commit();
-
-        return response()->json([
-            'success' => true,
-            'message' => "✅ ¡$totalProductos precios actualizados en " . $tasaSeleccionada->moneda->codigo . "!",
-            'productos_actualizados' => $totalProductos,
-            'moneda' => $tasaSeleccionada->moneda->codigo,
-            'tasa_usada' => $tasaSeleccionada->tasa,
-            'ejemplo_calculo' => [
-                'precio_usd' => '8.75',
-                'tasa_base' => $tasaBaseValor,
-                'tasa_moneda' => $tasaSeleccionada->tasa,
-                'resultado' => round(8.75 * $tasaBaseValor * $tasaSeleccionada->tasa, 4)
-            ]
-        ]);
-
-    } catch (\Exception $e) {
-        DB::rollBack();
-        Log::error('Error en actualizarPrecios: ' . $e->getMessage());
-        
-        return response()->json([
-            'success' => false,
-            'message' => '❌ Error: ' . $e->getMessage()
-        ], 500);
     }
-}
 }

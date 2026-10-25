@@ -6,15 +6,14 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Sistema de Facturación')</title>
     
-    <!-- Bootstrap 5.3 -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
     <!-- Google Fonts - Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <!-- Alpine.js -->
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/cdn.min.js"></script>
-    
+
+    {{-- Bootstrap y Alpine se empaquetan con Vite (resources/css/app.css y
+         resources/js/app.js). Antes se cargaban por CDN además del bundle,
+         lo que duplicaba Alpine y rompía los componentes. --}}
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     
     <style>
@@ -646,6 +645,28 @@
                 </li>
 
                 {{-- ============================================================ --}}
+                {{-- EGRESOS — solo admin                                       --}}
+                {{-- ============================================================ --}}
+                @can('viewAny', App\Models\Egreso::class)
+                <li class="nav-section">Egresos</li>
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('egresos.index') ? 'active' : '' }}" href="{{ route('egresos.index') }}">
+                        <i class="bi bi-cash-stack"></i> Egresos
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('egresos.create') ? 'active' : '' }}" href="{{ route('egresos.create') }}">
+                        <i class="bi bi-plus-circle"></i> Nuevo Egreso
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('categorias-egreso.*') ? 'active' : '' }}" href="{{ route('categorias-egreso.index') }}">
+                        <i class="bi bi-tags"></i> Categorías de Egreso
+                    </a>
+                </li>
+                @endcan
+
+                {{-- ============================================================ --}}
                 {{-- ADMINISTRACIÓN — solo admin                                --}}
                 {{-- ============================================================ --}}
                 @can('viewAny', App\Models\Moneda::class)
@@ -714,15 +735,19 @@
                     </div>
                     
                     <div class="user-menu">
-                        <span class="d-none d-md-inline text-sm text-muted" style="font-size:0.85rem;">
-                            {{ Auth::user()->name }}
-                        </span>
-                        <span class="badge bg-primary-subtle text-primary-emphasis rounded-pill px-3 py-1" style="font-size:0.7rem;font-weight:500;">
-                            {{ ucfirst(Auth::user()->role) }}
-                        </span>
-                        <div class="user-avatar">
-                            {{ strtoupper(substr(Auth::user()->name, 0, 2)) }}
-                        </div>
+                        @auth
+                            <span class="d-none d-md-inline text-sm text-muted" style="font-size:0.85rem;">
+                                {{ Auth::user()->name }}
+                            </span>
+                            <span class="badge bg-primary-subtle text-primary-emphasis rounded-pill px-3 py-1" style="font-size:0.7rem;font-weight:500;">
+                                {{ ucfirst(Auth::user()->role) }}
+                            </span>
+                            <div class="user-avatar">
+                                {{ strtoupper(substr(Auth::user()->name, 0, 2)) }}
+                            </div>
+                        @else
+                            <a href="{{ route('login') }}" class="btn btn-sm btn-primary">Iniciar sesión</a>
+                        @endauth
                     </div>
                 </div>
             </header>

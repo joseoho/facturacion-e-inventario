@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Categoria;
 use App\Models\Factura;
 use App\Models\Producto;
-use App\Models\Cliente;
-use App\Models\Categoria;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -65,7 +65,7 @@ class ReporteController extends Controller
             'categorias_afectadas' => Producto::where('stock_kg', '<=', 5)
                 ->where('stock_kg', '>', 0)
                 ->distinct('categoria_id')
-                ->count()
+                ->count(),
         ];
 
         return view('reportes.stock-bajo', compact('productos', 'estadisticas'));
@@ -76,10 +76,10 @@ class ReporteController extends Controller
      */
     public function ventasDiarias(Request $request)
     {
-        $fecha = $request->get('fecha') 
-            ? \Carbon\Carbon::parse($request->fecha) 
+        $fecha = $request->get('fecha')
+            ? Carbon::parse($request->fecha)
             : today();
-        
+
         $ventas = Factura::whereDate('fecha_emision', $fecha)
             ->where('estado', 'pagada')
             ->with(['cliente', 'moneda'])
@@ -89,13 +89,13 @@ class ReporteController extends Controller
             'total_ventas' => $ventas->sum('total'),
             'total_facturas' => $ventas->count(),
             'promedio' => $ventas->avg('total') ?? 0,
-            'por_moneda' => $ventas->groupBy('moneda_id')->map(function($group) {
+            'por_moneda' => $ventas->groupBy('moneda_id')->map(function ($group) {
                 return [
                     'moneda' => $group->first()->moneda->codigo,
                     'total' => $group->sum('total'),
-                    'cantidad' => $group->count()
+                    'cantidad' => $group->count(),
                 ];
-            })->values()->toArray()
+            })->values()->toArray(),
         ];
 
         return view('reportes.ventas-diarias', compact('ventas', 'totales', 'fecha'));

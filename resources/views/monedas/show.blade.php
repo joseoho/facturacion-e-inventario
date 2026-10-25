@@ -52,7 +52,7 @@
                                 <tr>
                                     <th>Estado</th>
                                     <td>
-                                        @if($moneda->activa)
+                                        @if($moneda->activo)
                                             <span class="badge bg-success">Activa</span>
                                         @else
                                             <span class="badge bg-danger">Inactiva</span>

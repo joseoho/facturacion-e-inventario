@@ -2,18 +2,17 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Producto;
 use App\Models\Categoria;
 use App\Models\Moneda;
-use App\Models\TasaCambio;
 use App\Models\PrecioProducto;
+use App\Models\Producto;
+use App\Models\TasaCambio;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class ProductoController extends Controller
 {
-    
     /**
      * Display a listing of the resource.
      */
@@ -25,10 +24,10 @@ class ProductoController extends Controller
         // Búsqueda por nombre, sku o descripción
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('nombre', 'LIKE', "%{$search}%")
-                  ->orWhere('sku', 'LIKE', "%{$search}%")
-                  ->orWhere('descripcion', 'LIKE', "%{$search}%");
+                    ->orWhere('sku', 'LIKE', "%{$search}%")
+                    ->orWhere('descripcion', 'LIKE', "%{$search}%");
             });
         }
 
@@ -61,7 +60,7 @@ class ProductoController extends Controller
         $this->authorize('create', Producto::class);
         $categorias = Categoria::where('activo', true)->orderBy('nombre')->get();
         $monedas = Moneda::where('activo', true)->get();
-        
+
         return view('productos.create', compact('categorias', 'monedas'));
     }
 
@@ -70,14 +69,14 @@ class ProductoController extends Controller
      */
     public function store(Request $request)
     {
-         $this->authorize('create', Producto::class);
+        $this->authorize('create', Producto::class);
         $validated = $request->validate([
             'sku' => 'required|string|max:50|unique:productos,sku',
             'nombre' => 'required|string|max:200',
             'descripcion' => 'nullable|string',
             'precio_kg_usd' => 'required|numeric|min:0',
             'stock_kg' => 'required|numeric|min:0',
-            'categoria_id' => 'nullable|exists:categorias,id',
+            'categoria_id' => 'required|exists:categorias,id',
             'iva_porcentaje' => 'required|numeric|min:0|max:100',
             'stock_minimo' => 'nullable|numeric|min:0',
             'activo' => 'boolean',
@@ -87,7 +86,7 @@ class ProductoController extends Controller
         // Manejar la imagen
         if ($request->hasFile('imagen')) {
             $imagen = $request->file('imagen');
-            $nombreImagen = Str::slug($validated['nombre']) . '_' . time() . '.' . $imagen->getClientOriginalExtension();
+            $nombreImagen = Str::slug($validated['nombre']).'_'.time().'.'.$imagen->getClientOriginalExtension();
             // Guardar en storage/app/public/productos
             $path = $imagen->storeAs('productos', $nombreImagen, 'public');
             $validated['imagen'] = $path; // Esto guarda "productos/nombre_imagen.jpg"
@@ -98,13 +97,19 @@ class ProductoController extends Controller
 
         $producto = Producto::create($validated);
 
-        // Crear precio en moneda local si se envió
-        if ($request->filled('moneda_id') && $request->filled('precio_kg_local')) {
+        // Crear precio en moneda local si se envió la tripleta completa.
+        // Si falta la tasa, no inventamos un id (antes se usaba `?? 1`,
+        // que podía apuntar a una tasa de otra moneda).
+        if (
+            $request->filled('moneda_id')
+            && $request->filled('precio_kg_local')
+            && $request->filled('tasa_cambio_id')
+        ) {
             PrecioProducto::create([
                 'producto_id' => $producto->id,
-                'moneda_id' => $request->moneda_id,
-                'tasa_cambio_id' => $request->tasa_cambio_id ?? 1,
-                'precio_kg' => $request->precio_kg_local,
+                'moneda_id' => $request->integer('moneda_id'),
+                'tasa_cambio_id' => $request->integer('tasa_cambio_id'),
+                'precio_kg' => $request->input('precio_kg_local'),
             ]);
         }
 
@@ -117,9 +122,9 @@ class ProductoController extends Controller
      */
     public function show(Producto $producto)
     {
-         $this->authorize('view', $producto);
+        $this->authorize('view', $producto);
         $producto->load(['categoria', 'preciosProductos.moneda', 'preciosProductos.tasaCambio']);
-        
+
         return view('productos.show', compact('producto'));
     }
 
@@ -128,11 +133,11 @@ class ProductoController extends Controller
      */
     public function edit(Producto $producto)
     {
-         $this->authorize('update', $producto);
+        $this->authorize('update', $producto);
         $categorias = Categoria::where('activo', true)->orderBy('nombre')->get();
         $monedas = Moneda::where('activo', true)->get();
         $producto->load('preciosProductos');
-        
+
         return view('productos.edit', compact('producto', 'categorias', 'monedas'));
     }
 
@@ -141,14 +146,14 @@ class ProductoController extends Controller
      */
     public function update(Request $request, Producto $producto)
     {
-         $this->authorize('update', $producto);
+        $this->authorize('update', $producto);
         $validated = $request->validate([
-            'sku' => 'required|string|max:50|unique:productos,sku,' . $producto->id,
+            'sku' => 'required|string|max:50|unique:productos,sku,'.$producto->id,
             'nombre' => 'required|string|max:200',
             'descripcion' => 'nullable|string',
             'precio_kg_usd' => 'required|numeric|min:0',
             'stock_kg' => 'required|numeric|min:0',
-            'categoria_id' => 'nullable|exists:categorias,id',
+            'categoria_id' => 'required|exists:categorias,id',
             'iva_porcentaje' => 'required|numeric|min:0|max:100',
             'stock_minimo' => 'nullable|numeric|min:0',
             'activo' => 'boolean',
@@ -161,9 +166,9 @@ class ProductoController extends Controller
             if ($producto->imagen && Storage::disk('public')->exists($producto->imagen)) {
                 Storage::disk('public')->delete($producto->imagen);
             }
-            
+
             $imagen = $request->file('imagen');
-            $nombreImagen = Str::slug($validated['nombre']) . '_' . time() . '.' . $imagen->getClientOriginalExtension();
+            $nombreImagen = Str::slug($validated['nombre']).'_'.time().'.'.$imagen->getClientOriginalExtension();
             $path = $imagen->storeAs('productos', $nombreImagen, 'public');
             $validated['imagen'] = $path;
         }
@@ -188,9 +193,9 @@ class ProductoController extends Controller
             if ($producto->imagen && Storage::disk('public')->exists($producto->imagen)) {
                 Storage::disk('public')->delete($producto->imagen);
             }
-            
+
             $producto->delete();
-            
+
             return redirect()->route('productos.index')
                 ->with('success', 'Producto eliminado exitosamente.');
         } catch (\Exception $e) {
@@ -204,11 +209,17 @@ class ProductoController extends Controller
      */
     public function precios(Producto $producto)
     {
-         $this->authorize('gestionarPrecios', $producto);
+        $this->authorize('gestionarPrecios', $producto);
         $producto->load('preciosProductos.moneda', 'preciosProductos.tasaCambio');
         $monedas = Moneda::where('activo', true)->get();
-        $tasasCambio = TasaCambio::where('tasa', true)->get();
-        
+        // `tasa` es decimal, no booleano: antes `where('tasa', true)`
+        // traducía a `tasa = 1` y dejaba el selector casi vacío.
+        $tasasCambio = TasaCambio::with('moneda')
+            ->orderByDesc('fecha')
+            ->orderByDesc('id')
+            ->limit(100)
+            ->get();
+
         return view('productos.precios', compact('producto', 'monedas', 'tasasCambio'));
     }
 

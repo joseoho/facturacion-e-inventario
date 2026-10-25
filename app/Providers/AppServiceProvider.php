@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Models\User;
+use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -21,6 +22,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // La interfaz usa Bootstrap 5: sin esto los paginadores se
+        // renderizan con el markup de Tailwind y quedan sin estilos.
+        Paginator::useBootstrapFive();
+
         // ============================================================
         // GATE::BEFORE — Los admins pasan TODAS las autorizaciones
         // ============================================================
@@ -37,6 +42,7 @@ class AppServiceProvider extends ServiceProvider
             if ($user->isAdmin()) {
                 return true;
             }
+
             return null; // deja que las Policies decidan
         });
     }

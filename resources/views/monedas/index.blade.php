@@ -20,10 +20,10 @@
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <select name="activa" class="form-select" onchange="this.form.submit()">
+                    <select name="activo" class="form-select" onchange="this.form.submit()">
                         <option value="">Todos</option>
-                        <option value="1" {{ request('activa') === '1' ? 'selected' : '' }}>Activas</option>
-                        <option value="0" {{ request('activa') === '0' ? 'selected' : '' }}>Inactivas</option>
+                        <option value="1" {{ request('activo') === '1' ? 'selected' : '' }}>Activas</option>
+                        <option value="0" {{ request('activo') === '0' ? 'selected' : '' }}>Inactivas</option>
                     </select>
                 </div>
                 <div class="col-md-2">
@@ -77,7 +77,7 @@
                             @endif
                         </td>
                         <td>
-                            @if($moneda->activa)
+                            @if($moneda->activo)
                                 <span class="badge bg-success">Activa</span>
                             @else
                                 <span class="badge bg-danger">Inactiva</span>

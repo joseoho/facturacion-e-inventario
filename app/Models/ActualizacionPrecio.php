@@ -36,8 +36,8 @@ class ActualizacionPrecio extends Model
     // Mutador para guardar las monedas actualizadas como JSON
     public function setMonedasActualizadasAttribute($value)
     {
-        $this->attributes['monedas_actualizadas'] = is_array($value) 
-            ? json_encode($value) 
+        $this->attributes['monedas_actualizadas'] = is_array($value)
+            ? json_encode($value)
             : $value;
     }
 }

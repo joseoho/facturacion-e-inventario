@@ -29,8 +29,8 @@ class Cliente extends Model
 
     protected $casts = [
         'limite_credito' => 'decimal:2',
-        'dias_credito'   => 'integer',
-        'activo'         => 'boolean',
+        'dias_credito' => 'integer',
+        'activo' => 'boolean',
     ];
 
     /**

@@ -12,12 +12,15 @@ class Moneda extends Model
 
     protected $table = 'monedas';
 
-        // ============================================================
+    // ============================================================
     // CÓDIGOS DE MONEDA — fuente única de verdad
     // ============================================================
     public const CODIGO_USD = 'USD';
+
     public const CODIGO_COP = 'COP';
+
     public const CODIGO_VES = 'BS';   // Bolívar (según tu BD)
+
     public const CODIGO_EUR = 'EUR';
 
     public const ALIAS_VES = ['BS', 'VES'];
@@ -32,7 +35,7 @@ class Moneda extends Model
 
     protected $casts = [
         'es_base' => 'boolean',
-        'activo'  => 'boolean',
+        'activo' => 'boolean',
     ];
 
     // protected $fillable = [
@@ -71,13 +74,13 @@ class Moneda extends Model
         return $this->hasMany(Factura::class, 'moneda_id');
     }
 
-        public function scopePorCodigo($query, string $codigo)
+    public function scopePorCodigo($query, string $codigo)
     {
         $codigo = strtoupper($codigo);
 
         $codigos = match ($codigo) {
             'VES', 'BS' => self::ALIAS_VES,
-            default     => [$codigo],
+            default => [$codigo],
         };
 
         return $query->whereIn('codigo', $codigos);

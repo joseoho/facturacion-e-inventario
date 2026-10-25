@@ -6,10 +6,11 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Producto extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $table = 'productos';
 
@@ -27,11 +28,11 @@ class Producto extends Model
     ];
 
     protected $casts = [
-        'precio_kg_usd'  => 'decimal:4',
-        'stock_kg'       => 'decimal:3',
+        'precio_kg_usd' => 'decimal:4',
+        'stock_kg' => 'decimal:3',
         'iva_porcentaje' => 'decimal:2',
-        'stock_minimo'   => 'decimal:3',
-        'activo'         => 'boolean',
+        'stock_minimo' => 'decimal:3',
+        'activo' => 'boolean',
     ];
 
     /**

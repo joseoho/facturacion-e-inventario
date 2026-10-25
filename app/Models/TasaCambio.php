@@ -21,7 +21,7 @@ class TasaCambio extends Model
     ];
 
     protected $casts = [
-        'tasa'  => 'decimal:6',
+        'tasa' => 'decimal:6',
         'fecha' => 'date',
     ];
 

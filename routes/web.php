@@ -1,23 +1,24 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\CategoriaController;
+use App\Http\Controllers\CategoriaEgresoController;
+use App\Http\Controllers\ClienteController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\EgresoController;
+use App\Http\Controllers\FacturaController;
+use App\Http\Controllers\HomeController;
+use App\Http\Controllers\MonedaController;
+use App\Http\Controllers\ProductoController;
+use App\Http\Controllers\ReporteController;
+use App\Http\Controllers\TasaCambioController;
 use Illuminate\Support\Facades\Auth;
-use App\Http\Controllers\{
-    DashboardController,
-    TasaCambioController,
-    ProductoController,
-    FacturaController,
-    ClienteController,
-    CategoriaController,
-    ReporteController,
-    MonedaController,
-    HomeController
-};
+use Illuminate\Support\Facades\Route;
 
 // ============================================================
-// Autenticación (login, register, reset password, etc.)
+// Autenticación (login, reset password, etc.)
+// El registro público está deshabilitado: los usuarios los crea un admin.
 // ============================================================
-Auth::routes();
+Auth::routes(['register' => false]);
 
 // ============================================================
 // /home redirige al dashboard real (compatibilidad laravel/ui)
@@ -53,13 +54,11 @@ Route::middleware(['auth'])->group(function () {
 
         Route::resource('/', FacturaController::class)
             ->parameters(['' => 'factura'])
-            ->except(['show'])
+            ->except(['show', 'edit', 'update'])
             ->names([
-                'index'   => 'index',
-                'create'  => 'create',
-                'store'   => 'store',
-                'edit'    => 'edit',
-                'update'  => 'update',
+                'index' => 'index',
+                'create' => 'create',
+                'store' => 'store',
                 'destroy' => 'destroy',
             ]);
 
@@ -128,5 +127,23 @@ Route::middleware(['auth'])->group(function () {
             ->name('stock-bajo');
         Route::get('ventas/diarias', [ReporteController::class, 'ventasDiarias'])
             ->name('ventas.diarias');
+    });
+
+    // ------------------------------------------------------------
+    // SOLO ADMIN — Egresos y categorías de egreso
+    // ------------------------------------------------------------
+    Route::middleware('role:admin')->group(function () {
+        Route::prefix('egresos')->name('egresos.')->group(function () {
+            Route::get('/', [EgresoController::class, 'index'])->name('index');
+            Route::get('create', [EgresoController::class, 'create'])->name('create');
+            Route::post('/', [EgresoController::class, 'store'])->name('store');
+            Route::post('{egreso}/anular', [EgresoController::class, 'anular'])->name('anular');
+            Route::post('{egreso}/pagar', [EgresoController::class, 'pagar'])->name('pagar');
+            Route::get('{egreso}', [EgresoController::class, 'show'])->name('show');
+        });
+
+        Route::resource('categorias-egreso', CategoriaEgresoController::class)
+            ->parameters(['categorias-egreso' => 'categoriaEgreso'])
+            ->except(['show']);
     });
 });

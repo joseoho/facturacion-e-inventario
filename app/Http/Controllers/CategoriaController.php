@@ -13,15 +13,15 @@ class CategoriaController extends Controller
      */
     public function index(Request $request)
     {
-         $this->authorize('viewAny', Categoria::class);
+        $this->authorize('viewAny', Categoria::class);
         $query = Categoria::query();
 
         // Filtro de búsqueda
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('nombre', 'LIKE', "%{$search}%")
-                  ->orWhere('descripcion', 'LIKE', "%{$search}%");
+                    ->orWhere('descripcion', 'LIKE', "%{$search}%");
             });
         }
 
@@ -44,6 +44,7 @@ class CategoriaController extends Controller
     public function create()
     {
         $this->authorize('create', Categoria::class);
+
         return view('categorias.create');
     }
 
@@ -80,10 +81,10 @@ class CategoriaController extends Controller
      */
     public function show(Categoria $categoria)
     {
-         $this->authorize('view', $categoria);
+        $this->authorize('view', $categoria);
         // Cargar los productos relacionados con paginación
         $productos = $categoria->productos()->paginate(10);
-        
+
         return view('categorias.show', compact('categoria', 'productos'));
     }
 
@@ -93,6 +94,7 @@ class CategoriaController extends Controller
     public function edit(Categoria $categoria)
     {
         $this->authorize('update', $categoria);
+
         return view('categorias.edit', compact('categoria'));
     }
 
@@ -103,7 +105,7 @@ class CategoriaController extends Controller
     {
         $this->authorize('update', $categoria);
         $validator = Validator::make($request->all(), [
-            'nombre' => 'required|string|max:100|unique:categorias,nombre,' . $categoria->id,
+            'nombre' => 'required|string|max:100|unique:categorias,nombre,'.$categoria->id,
             'descripcion' => 'nullable|string|max:500',
             'activo' => 'boolean',
         ]);

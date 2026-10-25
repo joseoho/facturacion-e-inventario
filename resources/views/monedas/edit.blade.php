@@ -83,11 +83,11 @@
                                 <div class="form-check">
                                     <input type="checkbox" 
                                            class="form-check-input" 
-                                           id="activa" 
-                                           name="activa"
+                                           id="activo" 
+                                           name="activo"
                                            value="1"
-                                           {{ old('activa', $moneda->activa) ? 'checked' : '' }}>
-                                    <label class="form-check-label" for="activa">
+                                           {{ old('activo', $moneda->activo) ? 'checked' : '' }}>
+                                    <label class="form-check-label" for="activo">
                                         Activa
                                     </label>
                                     <small class="text-muted d-block">

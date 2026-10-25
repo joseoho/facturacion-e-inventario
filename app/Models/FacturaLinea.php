@@ -24,12 +24,12 @@ class FacturaLinea extends Model
     ];
 
     protected $casts = [
-        'cantidad_kg'         => 'decimal:3',
-        'precio_kg'           => 'decimal:4',
-        'neto'                => 'decimal:4',
+        'cantidad_kg' => 'decimal:3',
+        'precio_kg' => 'decimal:4',
+        'neto' => 'decimal:4',
         'impuesto_porcentaje' => 'decimal:2',
-        'impuesto_monto'      => 'decimal:4',
-        'total'               => 'decimal:4',
+        'impuesto_monto' => 'decimal:4',
+        'total' => 'decimal:4',
     ];
 
     public function factura(): BelongsTo

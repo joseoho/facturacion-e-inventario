@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\Cliente;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 
 class ClienteController extends Controller
 {
@@ -24,8 +23,8 @@ class ClienteController extends Controller
             ->when($request->tipo_cliente, function ($query, $tipo) {
                 return $query->where('tipo_documento', $tipo);
             })
-            ->when($request->activo !== null, function ($query) use ($request) {
-                return $query->where('activo', $request->activo);
+            ->when($request->filled('activo'), function ($query) use ($request) {
+                return $query->where('activo', $request->boolean('activo'));
             })
             ->orderBy('nombre')
             ->paginate(15)
@@ -43,10 +42,10 @@ class ClienteController extends Controller
     public function create()
     {
         $this->authorize('create', Cliente::class);
-        $cliente = new Cliente();
-        $tiposCliente = ['minorista', 'mayorista', 'corporativo', 'otro'];
-        $tiposDocumento = ['J','V','G','E','OTRO'];
-        
+        $cliente = new Cliente;
+        $tiposCliente = ['minorista', 'mayorista', 'corporativo'];
+        $tiposDocumento = ['J', 'V', 'G', 'E', 'CI', 'OTRO'];
+
         return view('clientes.create', compact('cliente', 'tiposCliente', 'tiposDocumento'));
     }
 
@@ -59,12 +58,12 @@ class ClienteController extends Controller
         $validated = $request->validate([
             'nombre' => 'required|string|max:255',
             'documento' => 'required|string|max:50|unique:clientes,documento',
-            'tipo_documento' => 'required|string|in:J,V,G,E,OTRO',
+            'tipo_documento' => 'required|string|in:J,V,G,E,CI,OTRO',
             'direccion' => 'nullable|string|max:500',
             'telefono' => 'nullable|string|max:20',
             'email' => 'nullable|email|max:255|unique:clientes,email',
             'contacto' => 'nullable|string|max:255',
-            'tipo_cliente' => 'required|string|in:minorista,mayorista,corporativo,otro',
+            'tipo_cliente' => 'required|string|in:minorista,mayorista,corporativo',
             'limite_credito' => 'nullable|numeric|min:0|max:99999999.99',
             'dias_credito' => 'nullable|integer|min:0|max:365',
             'activo' => 'boolean',
@@ -72,7 +71,7 @@ class ClienteController extends Controller
         ]);
 
         $validated['activo'] = $request->has('activo');
-        
+
         Cliente::create($validated);
 
         return redirect()
@@ -96,7 +95,7 @@ class ClienteController extends Controller
             'total_facturas' => $cliente->facturas()->count(),
             'total_facturado' => $cliente->facturas()->sum('total'),
             'total_pagado' => $cliente->facturas()->where('estado', 'pagada')->sum('total'),
-            'saldo_pendiente' => $cliente->facturas()->where('estado', '!=', 'pagada')->sum('total'),
+            'saldo_pendiente' => $cliente->facturas()->where('estado', 'pendiente')->sum('total'),
         ];
 
         return view('clientes.show', compact('cliente', 'facturasRecientes', 'stats'));
@@ -108,9 +107,9 @@ class ClienteController extends Controller
     public function edit(Cliente $cliente)
     {
         $this->authorize('update', $cliente);
-        $tiposCliente = ['minorista', 'mayorista', 'corporativo', 'otro'];
-        $tiposDocumento = ['J','V','G','E','OTRO'];
-        
+        $tiposCliente = ['minorista', 'mayorista', 'corporativo'];
+        $tiposDocumento = ['J', 'V', 'G', 'E', 'CI', 'OTRO'];
+
         return view('clientes.edit', compact('cliente', 'tiposCliente', 'tiposDocumento'));
     }
 
@@ -122,13 +121,13 @@ class ClienteController extends Controller
         $this->authorize('update', $cliente);
         $validated = $request->validate([
             'nombre' => 'required|string|max:255',
-            'documento' => 'required|string|max:50|unique:clientes,documento,' . $cliente->id,
-            'tipo_documento' => 'required|string|in:J,V,G,E,OTRO',
+            'documento' => 'required|string|max:50|unique:clientes,documento,'.$cliente->id,
+            'tipo_documento' => 'required|string|in:J,V,G,E,CI,OTRO',
             'direccion' => 'nullable|string|max:500',
             'telefono' => 'nullable|string|max:20',
-            'email' => 'nullable|email|max:255|unique:clientes,email,' . $cliente->id,
+            'email' => 'nullable|email|max:255|unique:clientes,email,'.$cliente->id,
             'contacto' => 'nullable|string|max:255',
-            'tipo_cliente' => 'required|string|in:minorista,mayorista,corporativo,otro',
+            'tipo_cliente' => 'required|string|in:minorista,mayorista,corporativo',
             'limite_credito' => 'nullable|numeric|min:0|max:99999999.99',
             'dias_credito' => 'nullable|integer|min:0|max:365',
             'activo' => 'boolean',
@@ -136,7 +135,7 @@ class ClienteController extends Controller
         ]);
 
         $validated['activo'] = $request->has('activo');
-        
+
         $cliente->update($validated);
 
         return redirect()

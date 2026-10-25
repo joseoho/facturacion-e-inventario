@@ -13,22 +13,22 @@ class MonedaController extends Controller
      */
     public function index(Request $request)
     {
-         $this->authorize('viewAny', Moneda::class);
+        $this->authorize('viewAny', Moneda::class);
         $query = Moneda::query();
 
         // Filtro de búsqueda
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('codigo', 'LIKE', "%{$search}%")
-                  ->orWhere('nombre', 'LIKE', "%{$search}%")
-                  ->orWhere('simbolo', 'LIKE', "%{$search}%");
+                    ->orWhere('nombre', 'LIKE', "%{$search}%")
+                    ->orWhere('simbolo', 'LIKE', "%{$search}%");
             });
         }
 
-        // Filtro por estado
-        if ($request->filled('activa')) {
-            $query->where('activa', $request->activa);
+        // Filtro por estado (la columna real es `activo`)
+        if ($request->filled('activo')) {
+            $query->where('activo', $request->boolean('activo'));
         }
 
         // Ordenar por ID descendente
@@ -42,7 +42,8 @@ class MonedaController extends Controller
      */
     public function create()
     {
-         $this->authorize('create', Moneda::class);
+        $this->authorize('create', Moneda::class);
+
         return view('monedas.create');
     }
 
@@ -51,13 +52,13 @@ class MonedaController extends Controller
      */
     public function store(Request $request)
     {
-         $this->authorize('create', Moneda::class);
+        $this->authorize('create', Moneda::class);
         $validated = $request->validate([
             'codigo' => ['required', 'string', 'max:3', 'unique:monedas,codigo'],
             'nombre' => ['required', 'string', 'max:100'],
             'simbolo' => ['required', 'string', 'max:10'],
             'es_base' => ['boolean'],
-            'activa' => ['boolean'],
+            'activo' => ['boolean'],
         ]);
 
         // Si se marca como base, desactivar otras bases
@@ -70,7 +71,7 @@ class MonedaController extends Controller
             'nombre' => $validated['nombre'],
             'simbolo' => $validated['simbolo'],
             'es_base' => $request->boolean('es_base'),
-            'activa' => $request->boolean('activa', true),
+            'activo' => $request->boolean('activo', true),
         ]);
 
         return redirect()
@@ -83,9 +84,9 @@ class MonedaController extends Controller
      */
     public function show(Moneda $moneda)
     {
-         $this->authorize('view', $moneda);
+        $this->authorize('view', $moneda);
         // Cargar relaciones para mostrar información adicional
-        $moneda->load(['tasasCambio' => function($query) {
+        $moneda->load(['tasasCambio' => function ($query) {
             $query->latest('fecha')->limit(5);
         }]);
 
@@ -100,7 +101,8 @@ class MonedaController extends Controller
      */
     public function edit(Moneda $moneda)
     {
-          $this->authorize('update', $moneda);
+        $this->authorize('update', $moneda);
+
         return view('monedas.edit', compact('moneda'));
     }
 
@@ -109,22 +111,22 @@ class MonedaController extends Controller
      */
     public function update(Request $request, Moneda $moneda)
     {
-          $this->authorize('update', $moneda);
+        $this->authorize('update', $moneda);
         $validated = $request->validate([
             'codigo' => ['required', 'string', 'max:3', Rule::unique('monedas')->ignore($moneda->id)],
             'nombre' => ['required', 'string', 'max:100'],
             'simbolo' => ['required', 'string', 'max:10'],
             'es_base' => ['boolean'],
-            'activa' => ['boolean'],
+            'activo' => ['boolean'],
         ]);
 
         // Validar que no se desactive la moneda base si es la única
-        if ($moneda->es_base && !$request->boolean('es_base')) {
+        if ($moneda->es_base && ! $request->boolean('es_base')) {
             $otherBaseExists = Moneda::where('es_base', true)
                 ->where('id', '!=', $moneda->id)
                 ->exists();
 
-            if (!$otherBaseExists) {
+            if (! $otherBaseExists) {
                 return back()
                     ->withErrors(['es_base' => 'Debe haber al menos una moneda base activa.'])
                     ->withInput();
@@ -143,7 +145,7 @@ class MonedaController extends Controller
             'nombre' => $validated['nombre'],
             'simbolo' => $validated['simbolo'],
             'es_base' => $request->boolean('es_base'),
-            'activa' => $request->boolean('activa'),
+            'activo' => $request->boolean('activo'),
         ]);
 
         return redirect()

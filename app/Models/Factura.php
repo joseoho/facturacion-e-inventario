@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Carbon\Carbon;
+
 // use App\Policies\FacturaPolicy;
 
 class Factura extends Model
@@ -26,7 +26,7 @@ class Factura extends Model
         'total',
         'estado',
         'fecha_emision',
-        // 'fecha_pago',
+        'fecha_pago',
         'moneda_pago', // NUEVO CAMPO
         'tasa_cambio_usada', // NUEVO CAMPO
     ];
@@ -42,7 +42,9 @@ class Factura extends Model
 
     // Constantes
     const ESTADO_PENDIENTE = 'pendiente';
+
     const ESTADO_PAGADA = 'pagada';
+
     const ESTADO_ANULADA = 'anulada';
 
     // Relaciones
@@ -84,6 +86,7 @@ class Factura extends Model
             'pagada' => 'Pagada',
             'anulada' => 'Anulada',
         ];
+
         return $estados[$this->estado] ?? 'Desconocido';
     }
 
