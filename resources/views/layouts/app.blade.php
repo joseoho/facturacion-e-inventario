@@ -681,6 +681,11 @@
                         <i class="bi bi-coin"></i> Monedas
                     </a>
                 </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('usuarios.*') ? 'active' : '' }}" href="{{ route('usuarios.index') }}">
+                        <i class="bi bi-person-gear"></i> Usuarios
+                    </a>
+                </li>
                 @endcan
 
                 {{-- ============================================================ --}}
@@ -709,6 +714,11 @@
                 {{-- SISTEMA — visible para todos                              --}}
                 {{-- ============================================================ --}}
                 <li class="nav-section">Sistema</li>
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('perfil.*') ? 'active' : '' }}" href="{{ route('perfil.edit') }}">
+                        <i class="bi bi-key"></i> Cambiar contraseña
+                    </a>
+                </li>
                 <li class="nav-item">
                     <form method="POST" action="{{ route('logout') }}" class="d-inline">
                         @csrf

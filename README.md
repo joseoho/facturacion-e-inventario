@@ -24,6 +24,8 @@ No emite facturación electrónica ni se integra con entes externos.
   Si la categoría afecta inventario, suma stock al producto y al anular lo revierte
   (bloquea la anulación si el stock ya fue vendido).
 - **Categorías de egreso**: catálogo administrable.
+- **Usuarios** (solo admin): alta, asignación de rol, activar/desactivar y reseteo de contraseña.
+  Desactivar a un usuario invalida su sesión activa.
 - **Tasas de cambio**: carga diaria, histórico, exportación CSV, actualización masiva de precios.
 - **Reportes**: inventario, stock bajo, ventas diarias, dashboard con métricas.
 - **Usuarios**: roles `admin` y `vendedor`, con policies por módulo.
@@ -51,7 +53,7 @@ php artisan storage:link
 ```
 
 Credenciales del seeder: `admin@facturador.com` / `Admin123!`.
-**Cámbialas antes de cualquier despliegue.**
+Cámbialas al entrar desde **Sistema → Cambiar contraseña** (menú lateral).
 
 ## Instalación automática en Windows (XAMPP)
 

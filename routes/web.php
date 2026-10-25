@@ -8,9 +8,11 @@ use App\Http\Controllers\EgresoController;
 use App\Http\Controllers\FacturaController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\MonedaController;
+use App\Http\Controllers\PerfilController;
 use App\Http\Controllers\ProductoController;
 use App\Http\Controllers\ReporteController;
 use App\Http\Controllers\TasaCambioController;
+use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -34,6 +36,12 @@ Route::middleware(['auth'])->group(function () {
     // Dashboard (accesible por admin y vendedor)
     // ------------------------------------------------------------
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+
+    // ------------------------------------------------------------
+    // PERFIL — todos los usuarios autenticados
+    // ------------------------------------------------------------
+    Route::get('perfil', [PerfilController::class, 'edit'])->name('perfil.edit');
+    Route::put('perfil/password', [PerfilController::class, 'updatePassword'])->name('perfil.password');
 
     // ------------------------------------------------------------
     // FACTURAS (admin y vendedor)
@@ -84,11 +92,18 @@ Route::middleware(['auth'])->group(function () {
         ->name('productos.precios.destroy');
 
     // ------------------------------------------------------------
-    // SOLO ADMIN — Monedas
+    // SOLO ADMIN — Monedas, categorías y usuarios
     // ------------------------------------------------------------
     Route::middleware('role:admin')->group(function () {
         Route::resource('monedas', MonedaController::class);
         Route::resource('categorias', CategoriaController::class);
+
+        Route::resource('usuarios', UserController::class)
+            ->except(['show', 'destroy'])
+            ->parameters(['usuarios' => 'user']);
+
+        Route::post('usuarios/{user}/toggle', [UserController::class, 'toggle'])
+            ->name('usuarios.toggle');
     });
 
     // ------------------------------------------------------------
