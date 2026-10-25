@@ -25,6 +25,7 @@ set "DB_NAME=facturacion_db"
 set "DB_USER=root"
 set "DB_PASS="
 set "XAMPP=C:\xampp"
+set "TARGET_DIR=%XAMPP%\htdocs\facturacion-inventario"
 
 if /i "%~1"=="--check" goto :check
 
@@ -57,25 +58,40 @@ REM 1) Obtener el proyecto
 REM ------------------------------------------------------------
 set "APP_DIR=%~dp0"
 if exist "%~dp0artisan" goto :proyecto_listo
+
+if exist "%TARGET_DIR%\artisan" (
+    set "APP_DIR=%TARGET_DIR%"
+    goto :proyecto_listo
+)
+
 if exist "%~dp0facturacion-inventario\artisan" (
     set "APP_DIR=%~dp0facturacion-inventario"
     goto :proyecto_listo
 )
 
-echo [1/9] Descargando el proyecto...
-where git >nul 2>&1
-if not errorlevel 1 (
-    git clone "%REPO%" "%CD%\facturacion-inventario"
-) else (
-    powershell -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference='Stop'; Invoke-WebRequest -Uri 'https://github.com/joseoho/facturacion-e-inventario/archive/refs/heads/main.zip' -OutFile 'proyecto.zip'; Expand-Archive -Path 'proyecto.zip' -DestinationPath 'tmp_descarga' -Force; Move-Item 'tmp_descarga\facturacion-e-inventario-main' 'facturacion-inventario'; Remove-Item 'proyecto.zip' -Force; Remove-Item 'tmp_descarga' -Recurse -Force"
-)
+echo [1/9] Descargando el proyecto en %TARGET_DIR%...
+if not exist "%XAMPP%\htdocs" mkdir "%XAMPP%\htdocs"
 
-if not exist "%CD%\facturacion-inventario\artisan" (
-    echo [X] No se pudo obtener el proyecto.
+if exist "%TARGET_DIR%" (
+    echo [X] La carpeta ya existe pero no parece el proyecto:
+    echo     %TARGET_DIR%
+    echo     Renombrala o eliminala y vuelve a ejecutar.
     goto :fin_error
 )
 
-set "APP_DIR=%CD%\facturacion-inventario"
+where git >nul 2>&1
+if not errorlevel 1 (
+    git clone "%REPO%" "%TARGET_DIR%"
+) else (
+    powershell -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference='Stop'; $zip=Join-Path $env:TEMP 'facturacion.zip'; $tmp=Join-Path $env:TEMP 'facturacion_tmp'; if (Test-Path $zip) { Remove-Item $zip -Force }; if (Test-Path $tmp) { Remove-Item $tmp -Recurse -Force }; Invoke-WebRequest -Uri 'https://github.com/joseoho/facturacion-e-inventario/archive/refs/heads/main.zip' -OutFile $zip; Expand-Archive -Path $zip -DestinationPath $tmp -Force; Move-Item (Join-Path $tmp 'facturacion-e-inventario-main') '%TARGET_DIR%'; Remove-Item $zip -Force; Remove-Item $tmp -Recurse -Force"
+)
+
+if not exist "%TARGET_DIR%\artisan" (
+    echo [X] No se pudo obtener el proyecto en %TARGET_DIR%.
+    goto :fin_error
+)
+
+set "APP_DIR=%TARGET_DIR%"
 
 :proyecto_listo
 if "%APP_DIR:~-1%"=="\" set "APP_DIR=%APP_DIR:~0,-1%"
@@ -306,8 +322,10 @@ if not errorlevel 1 (
 
 if exist "%~dp0artisan" (
     echo [OK] Proyecto detectado en %~dp0
+) else if exist "%TARGET_DIR%\artisan" (
+    echo [OK] Proyecto ya instalado en %TARGET_DIR%
 ) else (
-    echo [AVISO] El proyecto se descargara al ejecutar el instalador
+    echo [AVISO] El proyecto se descargara en %TARGET_DIR%
 )
 
 echo ------------------------------------------------

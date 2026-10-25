@@ -63,7 +63,8 @@ Si falta XAMPP, el instalador se detiene; si falta Node, intenta instalarlo con 
 Doble clic en **`instalar.bat`**. El script:
 
 1. Pide permisos de administrador (necesarios para `hosts` y Apache).
-2. Descarga el proyecto si no está (por `git clone` o ZIP si no hay Git).
+2. Descarga el proyecto si no está (por `git clone` o ZIP si no hay Git), siempre en
+   `C:\xampp\htdocs\facturacion-inventario`.
 3. Instala Composer si falta.
 4. Crea la base `facturacion_db` y ejecuta migraciones y seeders.
 5. Compila los assets con Vite (intenta instalar Node LTS con `winget` si falta).
