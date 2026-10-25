@@ -1,66 +1,127 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Facturación e Inventario
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Sistema interno de facturación multi-moneda y control de inventario (Laravel 11 + MySQL 8).
+No emite facturación electrónica ni se integra con entes externos.
 
-## About Laravel
+## Stack
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+| Componente | Versión |
+|---|---|
+| PHP | 8.2+ |
+| Laravel | 11.x |
+| MySQL | 8.0 (InnoDB) |
+| Frontend | Vite 8 + Bootstrap 5 + Alpine.js |
+| Tests | PHPUnit 10 + Laravel TestCase |
+| Estilo | Laravel Pint |
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Módulos
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- **Facturación**: facturas en USD / BS / COP / EUR, IVA por producto, tasa de cambio
+  congelada por factura, anulación con reposición de stock, pago con fecha.
+- **Inventario**: stock en Kg con 3 decimales, stock mínimo, movimientos de entrada/salida.
+- **Egresos**: registro plano (un egreso = un concepto) con categoría, proveedor en
+  texto libre, moneda de pago (USD/BS/COP), monto único, método de pago y anulación.
+  Si la categoría afecta inventario, suma stock al producto y al anular lo revierte
+  (bloquea la anulación si el stock ya fue vendido).
+- **Categorías de egreso**: catálogo administrable.
+- **Tasas de cambio**: carga diaria, histórico, exportación CSV, actualización masiva de precios.
+- **Reportes**: inventario, stock bajo, ventas diarias, dashboard con métricas.
+- **Usuarios**: roles `admin` y `vendedor`, con policies por módulo.
 
-## Learning Laravel
+## Requisitos
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+- PHP 8.2 con extensiones `pdo_mysql`, `mbstring`, `bcmath`, `gd`, `zip`, `intl`
+- Composer 2
+- Node.js 20+ y npm
+- MySQL 8
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+## Instalación local
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+```bash
+composer install
+cp .env.example .env
+php artisan key:generate
 
-## Laravel Sponsors
+# Crear la base de datos y configurar credenciales en .env
+php artisan migrate --seed
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+npm install
+npm run build        # o `npm run dev` para desarrollo
+php artisan storage:link
+```
 
-### Premium Partners
+Credenciales del seeder: `admin@facturador.com` / `Admin123!`.
+**Cámbialas antes de cualquier despliegue.**
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+## Comandos
 
-## Contributing
+```bash
+composer test          # suite completa
+composer test:coverage # suite con cobertura (requiere Xdebug/PCOV)
+composer lint          # verifica estilo con Pint
+composer lint:fix      # corrige estilo
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+npm run dev            # Vite en modo desarrollo
+npm run build          # build de producción
 
-## Code of Conduct
+php artisan migrate --force
+php artisan optimize   # config + rutas + vistas en caché
+php artisan optimize:clear
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+## Tests
 
-## Security Vulnerabilities
+La suite usa una base de datos **aislada** (`facturacion_test`) definida en
+`.env.testing` y `phpunit.xml`. `RefreshDatabase` recrea el esquema en cada
+ejecución, así que nunca apuntes esos valores a `facturacion_db`.
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+```bash
+php artisan test --compact
+```
 
-## License
+Cobertura actual: facturación (USD/BS, IVA, stock, precio manipulado, numeración),
+anulación y pago, egresos (alta, anulación, pago, total USD), permisos por rol,
+monedas y login de usuarios inactivos.
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+## CI
+
+`.github/workflows/ci.yml` ejecuta en cada push/PR a `main`:
+
+1. **tests** (matriz PHP 8.2/8.3) con servicio MySQL 8, migraciones desde cero y suite.
+2. **lint** con Pint.
+3. **assets** con `npm ci && npm run build`.
+
+Se recomienda proteger `main`: exigir los tres checks antes de mergear.
+
+## Decisiones de negocio relevantes
+
+- **Moneda base**: la marcada con `es_base = true` (USD). No requiere tasa;
+  sus precios salen de `productos.precio_kg_usd`.
+- **Precio de venta**: hoy se calcula como `precio_kg_usd × tasa vigente` y el backend
+  impone ese valor (ignora el precio que envía el frontend). La tabla `precios_productos`
+  se mantiene para el histórico y la actualización masiva; existen monedas sin precios
+  cargados (COP/EUR), por eso no se usa como fuente única todavía.
+- **Tasa congelada**: cada factura guarda `tasa_cambio_id` y `tasa_cambio_usada`.
+- **Numeración**: `FACT-XXXXXXXX` y `EGR-XXXXXXXX`, generadas con bloqueo de fila
+  dentro de transacción y respaldadas por un índice único.
+
+## Estructura
+
+```
+app/
+  Http/Controllers/      Controladores por módulo
+  Http/Requests/         Validación (StoreEgresoRequest)
+  Models/                Eloquent
+  Policies/              Autorización por módulo
+  Services/              Lógica de negocio transaccional (EgresoService)
+database/
+  migrations/            Esquema reproducible
+  factories/             Datos de prueba
+  seeders/               Datos iniciales
+resources/views/         Blade por módulo
+tests/Feature/           Pruebas de integración HTTP
+```
+
+## Despliegue
+
+Ver [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
