@@ -10,6 +10,8 @@
     $productosTop        = $productosTop        ?? collect();
     $ventasCategoria     = $ventasCategoria     ?? collect();
     $facturasRecientes   = $facturasRecientes   ?? collect();
+    $finanzas            = $finanzas            ?? [];
+    $comparativo         = $comparativo         ?? ['labels' => [], 'ventas' => [], 'egresos' => []];
 @endphp
 @section('content')
 <x-layout title="Dashboard" page-title="Dashboard">
@@ -36,6 +38,75 @@
         </div>
         @endif
         
+        @can('viewAny', App\Models\Egreso::class)
+            <!-- Finanzas del mes (solo admin) -->
+            <div class="row g-3 mb-4">
+                <div class="col-6 col-md-3">
+                    <div class="stat-card">
+                        <span class="text-muted small text-uppercase fw-semibold">Egresos Hoy</span>
+                        <h3 class="mb-0 mt-1 fw-bold">{{ number_format($finanzas['egresos_hoy'] ?? 0, 2) }}</h3>
+                        <small class="text-muted">USD</small>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="stat-card">
+                        <span class="text-muted small text-uppercase fw-semibold">Egresos del Mes</span>
+                        <h3 class="mb-0 mt-1 fw-bold text-danger">{{ number_format($finanzas['egresos_mes'] ?? 0, 2) }}</h3>
+                        <small class="text-muted">USD</small>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="stat-card">
+                        <span class="text-muted small text-uppercase fw-semibold">Utilidad del Mes</span>
+                        <h3 class="mb-0 mt-1 fw-bold {{ ($finanzas['utilidad_mes'] ?? 0) >= 0 ? 'text-success' : 'text-danger' }}">
+                            {{ number_format($finanzas['utilidad_mes'] ?? 0, 2) }}
+                        </h3>
+                        <small class="text-muted">Ventas {{ number_format($finanzas['ventas_mes'] ?? 0, 2) }} USD</small>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="stat-card">
+                        <span class="text-muted small text-uppercase fw-semibold">Margen del Mes</span>
+                        <h3 class="mb-0 mt-1 fw-bold">{{ number_format($finanzas['margen_mes'] ?? 0, 1) }}%</h3>
+                        <small class="text-muted">Utilidad / ventas</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ventas vs Egresos -->
+            <div class="stat-card mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                    <h6 class="fw-bold mb-0">Ventas vs Egresos (USD)</h6>
+                    <div class="d-flex gap-3 small">
+                        <span><span class="badge bg-success">&nbsp;</span> Ventas pagadas</span>
+                        <span><span class="badge bg-danger">&nbsp;</span> Egresos pagados</span>
+                    </div>
+                </div>
+
+                @php
+                    $maxComparativo = max(1, max(array_merge($comparativo['ventas'] ?? [0], $comparativo['egresos'] ?? [0])));
+                @endphp
+
+                @forelse($comparativo['labels'] ?? [] as $i => $label)
+                    <div class="row align-items-center mb-3">
+                        <div class="col-3 col-md-2 small text-muted">{{ $label }}</div>
+                        <div class="col-9 col-md-10">
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <div class="bg-success rounded" style="height:8px;width:{{ max(2, ($comparativo['ventas'][$i] ?? 0) / $maxComparativo * 100) }}%"></div>
+                                <small class="text-muted">{{ number_format($comparativo['ventas'][$i] ?? 0, 2) }}</small>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="bg-danger rounded" style="height:8px;width:{{ max(2, ($comparativo['egresos'][$i] ?? 0) / $maxComparativo * 100) }}%"></div>
+                                <small class="text-muted">{{ number_format($comparativo['egresos'][$i] ?? 0, 2) }}</small>
+                            </div>
+                        </div>
+                    </div>
+                @empty
+                    <p class="text-muted mb-0">Sin datos para los últimos 6 meses.</p>
+                @endforelse
+            </div>
+        @endcan
+
         <!-- Tarjetas de Métricas -->
         <div class="row g-3 mb-4">
             <div class="col-6 col-md-3">

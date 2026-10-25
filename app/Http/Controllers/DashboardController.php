@@ -2,19 +2,18 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Cliente;
+use App\Models\Egreso;
 use App\Models\Factura;
 use App\Models\Producto;
-use App\Models\Cliente;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 
 class DashboardController extends Controller
 {
     /**
      * Mostrar el dashboard con métricas y gráficos
      */
-        /**
+    /**
      * Dashboard principal.
      *
      * Nota arquitectónica: cada método privado lanza excepciones si algo
@@ -28,25 +27,28 @@ class DashboardController extends Controller
      * explícito de "safe call" que registre la métrica fallida en un
      * array de warnings visible en la vista, NO con try/catch ciego.
      */
-       public function index()
+    public function index()
     {
         return view('dashboard.index', [
-            'metricas'             => $this->getMetricasPrincipales(),
-            'desgloseMesAnterior'  => $this->getDesgloseMesAnterior(),
-            'alertasStock'         => $this->getAlertasStock(),
-            'ventasSemana'         => $this->getVentasSemana(),
-            'productosTop'         => $this->getProductosTop(),
-            'ventasCategoria'      => $this->getVentasCategoria(),
-            'facturasRecientes'    => Factura::with(['cliente:id,nombre', 'moneda:id,codigo,simbolo'])
+            'metricas' => $this->getMetricasPrincipales(),
+            'desgloseMesAnterior' => $this->getDesgloseMesAnterior(),
+            'alertasStock' => $this->getAlertasStock(),
+            'ventasSemana' => $this->getVentasSemana(),
+            'productosTop' => $this->getProductosTop(),
+            'ventasCategoria' => $this->getVentasCategoria(),
+            'finanzas' => $this->getResumenFinanciero(),
+            'comparativo' => $this->getVentasVsEgresos(),
+            'facturasRecientes' => Factura::with(['cliente:id,nombre', 'moneda:id,codigo,simbolo'])
                 ->latest('id')
                 ->limit(10)
                 ->get(),
         ]);
     }
+
     /**
      * Obtener métricas principales
      */
-      /**
+    /**
      * Métricas principales del dashboard.
      *
      * Optimizaciones aplicadas:
@@ -56,11 +58,11 @@ class DashboardController extends Controller
      */
     private function getMetricasPrincipales(): array
     {
-        $hoy           = now()->startOfDay();
-        $finHoy        = now()->endOfDay();
-        $inicioMes     = now()->startOfMonth();
-        $inicioMesAnt  = now()->subMonthNoOverflow()->startOfMonth();
-        $finMesAnt     = now()->subMonthNoOverflow()->endOfMonth();
+        $hoy = now()->startOfDay();
+        $finHoy = now()->endOfDay();
+        $inicioMes = now()->startOfMonth();
+        $inicioMesAnt = now()->subMonthNoOverflow()->startOfMonth();
+        $finMesAnt = now()->subMonthNoOverflow()->endOfMonth();
 
         // ============================================================
         // FACTURAS: ventas hoy, ventas mes, ventas mes anterior,
@@ -82,9 +84,9 @@ class DashboardController extends Controller
             ])
             ->first();
 
-        $ventasHoy          = (float) $metricasFacturas->ventas_hoy;
-        $ventasMes          = (float) $metricasFacturas->ventas_mes;
-        $ventasMesAnterior  = (float) $metricasFacturas->ventas_mes_anterior;
+        $ventasHoy = (float) $metricasFacturas->ventas_hoy;
+        $ventasMes = (float) $metricasFacturas->ventas_mes;
+        $ventasMesAnterior = (float) $metricasFacturas->ventas_mes_anterior;
 
         // ============================================================
         // PRODUCTOS: sin stock, stock bajo, total activos. 1 query.
@@ -115,20 +117,20 @@ class DashboardController extends Controller
             : 0;
 
         return [
-            'ventas_hoy'           => $ventasHoy,
-            'ventas_mes'           => $ventasMes,
-            'facturas_hoy'         => (int) $metricasFacturas->facturas_hoy,
-            'clientes_nuevos'      => (int) $metricasClientes->nuevos_hoy,
-            'productos_sin_stock'  => (int) $metricasProductos->sin_stock,
+            'ventas_hoy' => $ventasHoy,
+            'ventas_mes' => $ventasMes,
+            'facturas_hoy' => (int) $metricasFacturas->facturas_hoy,
+            'clientes_nuevos' => (int) $metricasClientes->nuevos_hoy,
+            'productos_sin_stock' => (int) $metricasProductos->sin_stock,
             'productos_stock_bajo' => (int) $metricasProductos->stock_bajo,
-            'total_productos'      => (int) $metricasProductos->total_activos,
-            'total_clientes'       => (int) $metricasClientes->total_activos,
-            'facturas_pendientes'  => (int) $metricasFacturas->facturas_pendientes,
-            'crecimiento'          => round($crecimiento, 1),
+            'total_productos' => (int) $metricasProductos->total_activos,
+            'total_clientes' => (int) $metricasClientes->total_activos,
+            'facturas_pendientes' => (int) $metricasFacturas->facturas_pendientes,
+            'crecimiento' => round($crecimiento, 1),
         ];
     }
 
-        /**
+    /**
      * Desglose de facturación del mes anterior por estado.
      *
      * Devuelve un array con:
@@ -141,7 +143,7 @@ class DashboardController extends Controller
      */
     private function getDesgloseMesAnterior(): array
     {
-        $inicioMesAnt    = now()->subMonthNoOverflow()->startOfMonth();
+        $inicioMesAnt = now()->subMonthNoOverflow()->startOfMonth();
         $inicioMesActual = now()->startOfMonth();
 
         // 1 query con CASE WHEN por estado → más eficiente que 3 queries
@@ -159,24 +161,25 @@ class DashboardController extends Controller
                 Factura::ESTADO_ANULADA,   Factura::ESTADO_ANULADA,
             ])
             ->where('fecha_emision', '>=', $inicioMesAnt)
-            ->where('fecha_emision', '<',  $inicioMesActual)
+            ->where('fecha_emision', '<', $inicioMesActual)
             ->first();
 
         return [
             'pagadas' => [
-                'cantidad' => (int)   $r->pag_cant,
-                'total'    => (float) $r->pag_total,
+                'cantidad' => (int) $r->pag_cant,
+                'total' => (float) $r->pag_total,
             ],
             'pendientes' => [
-                'cantidad' => (int)   $r->pen_cant,
-                'total'    => (float) $r->pen_total,
+                'cantidad' => (int) $r->pen_cant,
+                'total' => (float) $r->pen_total,
             ],
             'anuladas' => [
-                'cantidad' => (int)   $r->anu_cant,
-                'total'    => (float) $r->anu_total,
+                'cantidad' => (int) $r->anu_cant,
+                'total' => (float) $r->anu_total,
             ],
         ];
     }
+
     /**
      * Métricas por defecto en caso de error
      */
@@ -216,7 +219,7 @@ class DashboardController extends Controller
                 'stock_kg' => $producto->stock_kg,
                 'stock_minimo' => $producto->stock_minimo,
                 'nivel' => $this->getNivelAlerta($producto->stock_kg),
-                'color' => $this->getColorAlerta($producto->stock_kg)
+                'color' => $this->getColorAlerta($producto->stock_kg),
             ];
         });
     }
@@ -226,9 +229,16 @@ class DashboardController extends Controller
      */
     private function getNivelAlerta($stock)
     {
-        if ($stock <= 0) return 'Sin Stock';
-        if ($stock <= 1) return 'Crítico';
-        if ($stock <= 3) return 'Bajo';
+        if ($stock <= 0) {
+            return 'Sin Stock';
+        }
+        if ($stock <= 1) {
+            return 'Crítico';
+        }
+        if ($stock <= 3) {
+            return 'Bajo';
+        }
+
         return 'Alerta';
     }
 
@@ -237,16 +247,23 @@ class DashboardController extends Controller
      */
     private function getColorAlerta($stock)
     {
-        if ($stock <= 0) return 'danger';
-        if ($stock <= 1) return 'danger';
-        if ($stock <= 3) return 'warning';
+        if ($stock <= 0) {
+            return 'danger';
+        }
+        if ($stock <= 1) {
+            return 'danger';
+        }
+        if ($stock <= 3) {
+            return 'warning';
+        }
+
         return 'info';
     }
 
     /**
      * Obtener datos de ventas de la semana para gráfico
      */
-        /**
+    /**
      * Ventas de los últimos 7 días para el gráfico.
      *
      * ANTES: 7 queries en loop (una por día).
@@ -270,20 +287,21 @@ class DashboardController extends Controller
 
         // Rellenar días sin ventas con 0 (para que el gráfico no tenga huecos)
         $labels = [];
-        $data   = [];
+        $data = [];
 
         for ($i = 6; $i >= 0; $i--) {
-            $fecha    = now()->subDays($i);
-            $clave    = $fecha->toDateString(); // 'Y-m-d'
+            $fecha = now()->subDays($i);
+            $clave = $fecha->toDateString(); // 'Y-m-d'
             $labels[] = $fecha->format('d/m');
-            $data[]   = round((float) ($ventasPorDia[$clave] ?? 0), 2);
+            $data[] = round((float) ($ventasPorDia[$clave] ?? 0), 2);
         }
 
         return [
             'labels' => $labels,
-            'data'   => $data,
+            'data' => $data,
         ];
     }
+
     /**
      * Obtener productos más vendidos del mes
      */
@@ -294,6 +312,7 @@ class DashboardController extends Controller
             ->join('facturas', 'factura_lineas.factura_id', '=', 'facturas.id')
             ->where('facturas.estado', 'pagada')
             ->whereMonth('facturas.fecha_emision', now()->month)
+            ->whereYear('facturas.fecha_emision', now()->year)
             ->select(
                 'productos.id',
                 'productos.nombre',
@@ -321,6 +340,7 @@ class DashboardController extends Controller
                 ->join('facturas', 'factura_lineas.factura_id', '=', 'facturas.id')
                 ->where('facturas.estado', 'pagada')
                 ->whereMonth('facturas.fecha_emision', now()->month)
+                ->whereYear('facturas.fecha_emision', now()->year)
                 ->select(
                     'categorias.id',
                     'categorias.nombre',
@@ -329,11 +349,96 @@ class DashboardController extends Controller
                 ->groupBy('categorias.id', 'categorias.nombre')
                 ->orderBy('total_ventas', 'desc')
                 ->get();
-                
+
             return $categorias;
         } catch (\Exception $e) {
             // Si la tabla categorías no existe, retornar colección vacía
             return collect();
         }
+    }
+
+    /**
+     * Tarjetas financieras del mes: egresos, utilidad y margen.
+     *
+     * Todo se convierte a USD con la tasa congelada de cada documento,
+     * porque no se pueden sumar montos en BS/COP con montos en USD.
+     */
+    private function getResumenFinanciero(): array
+    {
+        $inicioMes = now()->startOfMonth();
+        $finMes = now()->endOfMonth();
+        $hoy = now()->startOfDay();
+        $finHoy = now()->endOfDay();
+
+        $ventasMesRow = Factura::query()
+            ->where('estado', Factura::ESTADO_PAGADA)
+            ->whereBetween('fecha_emision', [$inicioMes, $finMes])
+            ->selectRaw('COALESCE(SUM(CASE WHEN tasa_cambio_usada > 0 THEN total / tasa_cambio_usada ELSE total END), 0) as usd')
+            ->first();
+
+        $egresosMesRow = Egreso::query()
+            ->where('estado', Egreso::ESTADO_PAGADO)
+            ->whereBetween('fecha_egreso', [$inicioMes, $finMes])
+            ->selectRaw('COALESCE(SUM(CASE WHEN tasa_cambio_usada > 0 THEN monto / tasa_cambio_usada ELSE monto END), 0) as usd')
+            ->first();
+
+        $egresosHoyRow = Egreso::query()
+            ->where('estado', Egreso::ESTADO_PAGADO)
+            ->whereBetween('fecha_egreso', [$hoy, $finHoy])
+            ->selectRaw('COALESCE(SUM(CASE WHEN tasa_cambio_usada > 0 THEN monto / tasa_cambio_usada ELSE monto END), 0) as usd')
+            ->first();
+
+        $ventasMes = (float) ($ventasMesRow->usd ?? 0);
+        $egresosMes = (float) ($egresosMesRow->usd ?? 0);
+        $utilidad = $ventasMes - $egresosMes;
+
+        return [
+            'ventas_mes' => round($ventasMes, 2),
+            'egresos_hoy' => round((float) ($egresosHoyRow->usd ?? 0), 2),
+            'egresos_mes' => round($egresosMes, 2),
+            'utilidad_mes' => round($utilidad, 2),
+            'margen_mes' => $ventasMes > 0 ? round(($utilidad / $ventasMes) * 100, 1) : 0.0,
+        ];
+    }
+
+    /**
+     * Comparativo de ventas pagadas vs egresos pagados (USD, 6 meses).
+     */
+    private function getVentasVsEgresos(): array
+    {
+        $desde = now()->subMonthsNoOverflow(5)->startOfMonth();
+
+        $ventas = Factura::query()
+            ->where('estado', Factura::ESTADO_PAGADA)
+            ->where('fecha_emision', '>=', $desde)
+            ->selectRaw("DATE_FORMAT(fecha_emision, '%Y-%m') as ym, SUM(CASE WHEN tasa_cambio_usada > 0 THEN total / tasa_cambio_usada ELSE total END) as usd")
+            ->groupBy('ym')
+            ->pluck('usd', 'ym');
+
+        $egresos = Egreso::query()
+            ->where('estado', Egreso::ESTADO_PAGADO)
+            ->where('fecha_egreso', '>=', $desde)
+            ->selectRaw("DATE_FORMAT(fecha_egreso, '%Y-%m') as ym, SUM(CASE WHEN tasa_cambio_usada > 0 THEN monto / tasa_cambio_usada ELSE monto END) as usd")
+            ->groupBy('ym')
+            ->pluck('usd', 'ym');
+
+        $labels = [];
+        $dataVentas = [];
+        $dataEgresos = [];
+
+        for ($i = 5; $i >= 0; $i--) {
+            $mes = now()->subMonthsNoOverflow($i);
+            $clave = $mes->format('Y-m');
+
+            $labels[] = $mes->translatedFormat('M Y');
+            $dataVentas[] = round((float) ($ventas[$clave] ?? 0), 2);
+            $dataEgresos[] = round((float) ($egresos[$clave] ?? 0), 2);
+        }
+
+        return [
+            'labels' => $labels,
+            'ventas' => $dataVentas,
+            'egresos' => $dataEgresos,
+        ];
     }
 }
