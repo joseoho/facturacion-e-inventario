@@ -57,6 +57,7 @@ Credenciales del seeder: `admin@facturador.com` / `Admin123!`.
 
 Doble clic en **`instalar.bat`**. El script:
 
+0. Previamente instalar Xampp, luego ejecutar .bat, para que no se rompa el script. 
 1. Pide permisos de administrador (necesarios para `hosts` y Apache).
 2. Descarga el proyecto si no está (por `git clone` o ZIP si no hay Git).
 3. Instala Composer si falta.
