@@ -53,6 +53,33 @@ php artisan storage:link
 Credenciales del seeder: `admin@facturador.com` / `Admin123!`.
 **Cámbialas antes de cualquier despliegue.**
 
+## Instalación automática en Windows (XAMPP)
+
+Doble clic en **`instalar.bat`**. El script:
+
+1. Pide permisos de administrador (necesarios para `hosts` y Apache).
+2. Descarga el proyecto si no está (por `git clone` o ZIP si no hay Git).
+3. Instala Composer si falta.
+4. Crea la base `facturacion_db` y ejecuta migraciones y seeders.
+5. Compila los assets con Vite (intenta instalar Node LTS con `winget` si falta).
+6. Configura el VirtualHost **sin borrar los existentes**: respalda
+   `httpd.conf` y `httpd-vhosts.conf` antes de tocarlos y solo agrega lo que falta.
+7. Abre `http://facturacion-inventario.test`.
+
+Diagnóstico sin instalar nada:
+
+```bat
+instalar.bat --check
+```
+
+Solo configurar el vhost (no instala la aplicación):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\setup-vhost.ps1 -AppPath "C:\xampp\htdocs\facturacion-inventario"
+```
+
+Si tu MySQL tiene contraseña, edita `DB_PASS` al inicio de `instalar.bat`.
+
 ## Comandos
 
 ```bash
