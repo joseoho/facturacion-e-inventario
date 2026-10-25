@@ -20,7 +20,7 @@ return new class extends Migration
             $table->boolean('activo')->default(true);
             $table->text('descripcion')->nullable();
             $table->timestamps();
-            
+
             // Índices para búsquedas rápidas
             $table->index('codigo');
             $table->index('es_base');

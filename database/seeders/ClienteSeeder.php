@@ -26,7 +26,7 @@ class ClienteSeeder extends Seeder
                 'limite_credito' => 5000.00,
                 'dias_credito' => 30,
                 'activo' => true,
-                'notas' => 'Cliente mayorista con buen historial de pago. Compras quincenales.'
+                'notas' => 'Cliente mayorista con buen historial de pago. Compras quincenales.',
             ],
             [
                 'nombre' => 'Distribuidora La Exprés S.R.L.',
@@ -40,7 +40,7 @@ class ClienteSeeder extends Seeder
                 'limite_credito' => 8000.00,
                 'dias_credito' => 45,
                 'activo' => true,
-                'notas' => 'Cliente corporativo con excelente crédito. Compra mensual.'
+                'notas' => 'Cliente corporativo con excelente crédito. Compra mensual.',
             ],
             [
                 'nombre' => 'Almacén El Éxito',
@@ -54,7 +54,7 @@ class ClienteSeeder extends Seeder
                 'limite_credito' => 3000.00,
                 'dias_credito' => 20,
                 'activo' => true,
-                'notas' => 'Compra semanal de productos variados.'
+                'notas' => 'Compra semanal de productos variados.',
             ],
 
             // Corporativos
@@ -70,7 +70,7 @@ class ClienteSeeder extends Seeder
                 'limite_credito' => 3000.00,
                 'dias_credito' => 20,
                 'activo' => true,
-                'notas' => 'Compra semanal de productos cárnicos y vegetales.'
+                'notas' => 'Compra semanal de productos cárnicos y vegetales.',
             ],
             [
                 'nombre' => 'Hotel Plaza Mayor',
@@ -84,7 +84,7 @@ class ClienteSeeder extends Seeder
                 'limite_credito' => 6000.00,
                 'dias_credito' => 30,
                 'activo' => true,
-                'notas' => 'Proveedor exclusivo de productos lácteos y panadería.'
+                'notas' => 'Proveedor exclusivo de productos lácteos y panadería.',
             ],
             [
                 'nombre' => 'Comedor Industrial El Sabor',
@@ -98,7 +98,7 @@ class ClienteSeeder extends Seeder
                 'limite_credito' => 4000.00,
                 'dias_credito' => 15,
                 'activo' => true,
-                'notas' => 'Compra diaria de productos para comedor industrial.'
+                'notas' => 'Compra diaria de productos para comedor industrial.',
             ],
 
             // Minoristas
@@ -114,7 +114,7 @@ class ClienteSeeder extends Seeder
                 'limite_credito' => 1000.00,
                 'dias_credito' => 15,
                 'activo' => true,
-                'notas' => 'Cliente frecuente, compras diarias de panadería.'
+                'notas' => 'Cliente frecuente, compras diarias de panadería.',
             ],
             [
                 'nombre' => 'Comercial El Amigo',
@@ -128,7 +128,7 @@ class ClienteSeeder extends Seeder
                 'limite_credito' => 500.00,
                 'dias_credito' => 10,
                 'activo' => true,
-                'notas' => 'Tienda de barrio, compras pequeñas semanales.'
+                'notas' => 'Tienda de barrio, compras pequeñas semanales.',
             ],
             [
                 'nombre' => 'Frutas y Verduras El Fresco',
@@ -142,7 +142,7 @@ class ClienteSeeder extends Seeder
                 'limite_credito' => 300.00,
                 'dias_credito' => 7,
                 'activo' => true,
-                'notas' => 'Compra diaria de frutas y verduras.'
+                'notas' => 'Compra diaria de frutas y verduras.',
             ],
             [
                 'nombre' => 'Carnicería El Buen Corte',
@@ -156,7 +156,7 @@ class ClienteSeeder extends Seeder
                 'limite_credito' => 800.00,
                 'dias_credito' => 10,
                 'activo' => true,
-                'notas' => 'Compra de carnes para carnicería familiar.'
+                'notas' => 'Compra de carnes para carnicería familiar.',
             ],
             [
                 'nombre' => 'Licorería El Buen Sabor',
@@ -170,7 +170,7 @@ class ClienteSeeder extends Seeder
                 'limite_credito' => 400.00,
                 'dias_credito' => 5,
                 'activo' => true,
-                'notas' => 'Compra de bebidas para licorería.'
+                'notas' => 'Compra de bebidas para licorería.',
             ],
             [
                 'nombre' => 'Farmacia La Salud',
@@ -184,7 +184,7 @@ class ClienteSeeder extends Seeder
                 'limite_credito' => 600.00,
                 'dias_credito' => 15,
                 'activo' => true,
-                'notas' => 'Compra de productos de higiene personal.'
+                'notas' => 'Compra de productos de higiene personal.',
             ],
             [
                 'nombre' => 'Bodegón El Ahorro',
@@ -198,7 +198,7 @@ class ClienteSeeder extends Seeder
                 'limite_credito' => 200.00,
                 'dias_credito' => 3,
                 'activo' => true,
-                'notas' => 'Compra de abarrotes y productos básicos.'
+                'notas' => 'Compra de abarrotes y productos básicos.',
             ],
             [
                 'nombre' => 'Heladería El Sabor Tropical',
@@ -212,7 +212,7 @@ class ClienteSeeder extends Seeder
                 'limite_credito' => 250.00,
                 'dias_credito' => 7,
                 'activo' => true,
-                'notas' => 'Compra de productos congelados para heladería.'
+                'notas' => 'Compra de productos congelados para heladería.',
             ],
             [
                 'nombre' => 'Pizzería La Italiana',
@@ -226,7 +226,7 @@ class ClienteSeeder extends Seeder
                 'limite_credito' => 450.00,
                 'dias_credito' => 10,
                 'activo' => true,
-                'notas' => 'Compra de productos lácteos y panadería.'
+                'notas' => 'Compra de productos lácteos y panadería.',
             ],
             [
                 'nombre' => 'Cliente Ocasional',
@@ -240,7 +240,7 @@ class ClienteSeeder extends Seeder
                 'limite_credito' => 0,
                 'dias_credito' => 0,
                 'activo' => true,
-                'notas' => 'Cliente eventual, compras esporádicas.'
+                'notas' => 'Cliente eventual, compras esporádicas.',
             ],
         ];
 

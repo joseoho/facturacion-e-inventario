@@ -2,17 +2,17 @@
 
 namespace Database\Seeders;
 
+use App\Models\Cliente;
 use App\Models\Factura;
 use App\Models\FacturaLinea;
-use App\Models\Cliente;
-use App\Models\Producto;
 use App\Models\Moneda;
+use App\Models\PrecioProducto;
+use App\Models\Producto;
 use App\Models\TasaCambio;
 use App\Models\User;
-use App\Models\PrecioProducto;
+use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
 
 class FacturaSeeder extends Seeder
 {
@@ -42,15 +42,15 @@ class FacturaSeeder extends Seeder
                 $cliente = $clientes->random();
                 $moneda = $this->seleccionarMoneda($monedas);
                 $tasa = $this->obtenerTasaCambio($moneda, $fecha, $monedas['bs'], $tasaBase);
-                
+
                 // Crear factura con sus líneas
                 $factura = $this->crearFacturaConLineas(
-                    $i, 
-                    $cliente, 
-                    $vendedor, 
-                    $moneda, 
-                    $tasa, 
-                    $fecha, 
+                    $i,
+                    $cliente,
+                    $vendedor,
+                    $moneda,
+                    $tasa,
+                    $fecha,
                     $productos,
                     $ultimoNumero + $i + 1
                 );
@@ -84,8 +84,8 @@ class FacturaSeeder extends Seeder
             $errores[] = 'No hay tasas de cambio registradas';
         }
 
-        if (!empty($errores)) {
-            $this->command->error('❌ Error: ' . implode(', ', $errores));
+        if (! empty($errores)) {
+            $this->command->error('❌ Error: '.implode(', ', $errores));
             $this->command->info('⚠️  Ejecuta primero los seeders de: Clientes, Productos, Monedas y Tasas de Cambio');
             throw new \Exception('Faltan datos necesarios para ejecutar el seeder');
         }
@@ -97,12 +97,13 @@ class FacturaSeeder extends Seeder
     private function obtenerUltimoNumeroFactura(): int
     {
         $ultimaFactura = Factura::orderBy('id', 'desc')->first();
-        
+
         if ($ultimaFactura) {
             $numero = (int) substr($ultimaFactura->numero, 1);
+
             return $numero;
         }
-        
+
         return 0;
     }
 
@@ -112,10 +113,10 @@ class FacturaSeeder extends Seeder
     private function obtenerMonedas(): array
     {
         $monedas = Moneda::whereIn('codigo', ['BS', 'USD'])->get()->keyBy('codigo');
-        
+
         return [
             'bs' => $monedas->get('BS'),
-            'usd' => $monedas->get('USD')
+            'usd' => $monedas->get('USD'),
         ];
     }
 
@@ -125,19 +126,19 @@ class FacturaSeeder extends Seeder
     private function obtenerVendedor(): User
     {
         $vendedor = User::where('role', 'vendedor')->first();
-        
-        if (!$vendedor) {
+
+        if (! $vendedor) {
             $vendedor = User::first();
-            if (!$vendedor) {
+            if (! $vendedor) {
                 $vendedor = User::create([
                     'name' => 'Vendedor Default',
                     'email' => 'vendedor@default.com',
                     'password' => bcrypt('password'),
-                    'role' => 'vendedor'
+                    'role' => 'vendedor',
                 ]);
             }
         }
-        
+
         return $vendedor;
     }
 
@@ -150,7 +151,7 @@ class FacturaSeeder extends Seeder
             ->latest('fecha')
             ->first();
 
-        if (!$tasaBase) {
+        if (! $tasaBase) {
             $tasaBase = TasaCambio::create([
                 'moneda_id' => $monedaBs->id,
                 'tasa' => 1.00,
@@ -191,7 +192,7 @@ class FacturaSeeder extends Seeder
             ->latest('fecha')
             ->first();
 
-        if (!$tasa) {
+        if (! $tasa) {
             $tasa = TasaCambio::where('moneda_id', $moneda->id)
                 ->latest('fecha')
                 ->first();
@@ -214,7 +215,7 @@ class FacturaSeeder extends Seeder
         int $numeroSecuencial
     ): Factura {
         $estado = $this->getEstadoAleatorio();
-        
+
         // Crear factura
         $factura = Factura::create([
             'numero' => $this->generarNumeroFactura($numeroSecuencial),
@@ -252,26 +253,27 @@ class FacturaSeeder extends Seeder
             // Intentar usar el método pagar() si existe
             if (method_exists($factura, 'pagar')) {
                 $factura->pagar();
+
                 return;
             }
 
             // Si no existe el método, actualizar manualmente
             // Verificar si existe el campo fecha_pago
             $columnas = DB::getSchemaBuilder()->getColumnListing('facturas');
-            
+
             $dataToUpdate = [];
-            
+
             // Si existe el campo fecha_pago, actualizarlo
             if (in_array('fecha_pago', $columnas)) {
                 $dataToUpdate['fecha_pago'] = now();
             }
-            
+
             // Si existe el campo estado, ya está establecido
             // Solo actualizar si hay datos adicionales
-            if (!empty($dataToUpdate)) {
+            if (! empty($dataToUpdate)) {
                 $factura->update($dataToUpdate);
             }
-            
+
         } catch (\Exception $e) {
             $this->command->warn("⚠️  No se pudo marcar la factura {$factura->numero} como pagada: {$e->getMessage()}");
         }
@@ -282,7 +284,7 @@ class FacturaSeeder extends Seeder
      */
     private function generarNumeroFactura(int $numero): string
     {
-        return 'F' . str_pad($numero, 4, '0', STR_PAD_LEFT);
+        return 'F'.str_pad($numero, 4, '0', STR_PAD_LEFT);
     }
 
     /**
@@ -316,19 +318,19 @@ class FacturaSeeder extends Seeder
 
         for ($j = 0; $j < $numLineas; $j++) {
             $productoData = $productosDisponibles->random();
-            
+
             // Calcular cantidad máxima disponible
             $stockDisponible = $productoData['stock'];
             $cantidadMaxima = min(30, $stockDisponible);
             $cantidad = $this->generarCantidad($cantidadMaxima);
-            
+
             // Si no hay stock suficiente, saltar este producto
             if ($cantidad <= 0) {
                 continue;
             }
-            
+
             $precio = $productoData['precio'];
-            
+
             $neto = $precio * $cantidad;
             $ivaPorcentaje = $productoData['iva_porcentaje'] ?? 16;
             $ivaMonto = $neto * ($ivaPorcentaje / 100);
@@ -343,7 +345,7 @@ class FacturaSeeder extends Seeder
                 'neto' => $neto,
                 'impuesto_porcentaje' => $ivaPorcentaje,
                 'impuesto_monto' => $ivaMonto,
-                'total' => $totalLinea
+                'total' => $totalLinea,
             ]);
 
             $subtotal += $neto;
@@ -357,7 +359,7 @@ class FacturaSeeder extends Seeder
         return [
             'subtotal_neto' => $subtotal,
             'total_impuesto' => $impuesto,
-            'total' => $total
+            'total' => $total,
         ];
     }
 
@@ -375,7 +377,7 @@ class FacturaSeeder extends Seeder
                 ->first();
 
             // Si no hay precio para esta tasa, buscar solo por moneda
-            if (!$precioProducto) {
+            if (! $precioProducto) {
                 $precioProducto = PrecioProducto::where('producto_id', $producto->id)
                     ->where('moneda_id', $moneda->id)
                     ->latest()
@@ -383,8 +385,8 @@ class FacturaSeeder extends Seeder
             }
 
             // Si aún no hay precio, usar el precio por defecto en USD
-            $precio = $precioProducto 
-                ? $precioProducto->precio_kg 
+            $precio = $precioProducto
+                ? $precioProducto->precio_kg
                 : $producto->precio_kg_usd;
 
             return [
@@ -422,17 +424,17 @@ class FacturaSeeder extends Seeder
     {
         $minimo = 0.1;
         $cantidad = round(rand(10, 300) / 10, 1);
-        
+
         // Asegurar que no exceda el máximo
         if ($cantidad > $maximo) {
             $cantidad = round($maximo / 2, 1);
         }
-        
+
         // Asegurar que sea al menos el mínimo
         if ($cantidad < $minimo) {
             $cantidad = $minimo;
         }
-        
+
         return $cantidad;
     }
 
@@ -445,6 +447,7 @@ class FacturaSeeder extends Seeder
             // Intentar usar el método reducirStock si existe
             if (method_exists($producto, 'reducirStock')) {
                 $producto->reducirStock($cantidad);
+
                 return;
             }
 
@@ -454,7 +457,7 @@ class FacturaSeeder extends Seeder
                 $producto->stock_kg = $nuevoStock;
                 $producto->save();
             }
-            
+
         } catch (\Exception $e) {
             $this->command->warn("⚠️  No se pudo reducir stock del producto {$producto->id}: {$e->getMessage()}");
         }
@@ -467,9 +470,9 @@ class FacturaSeeder extends Seeder
     {
         $estados = ['pendiente', 'pagada', 'anulada'];
         $pesos = [40, 50, 10];
-        
+
         $random = rand(1, 100);
-        
+
         $acumulado = 0;
         foreach ($estados as $index => $estado) {
             $acumulado += $pesos[$index];
@@ -477,7 +480,7 @@ class FacturaSeeder extends Seeder
                 return $estado;
             }
         }
-        
+
         return 'pendiente';
     }
 
@@ -490,7 +493,7 @@ class FacturaSeeder extends Seeder
         $facturasPendientes = Factura::where('estado', 'pendiente')->count();
         $facturasPagadas = Factura::where('estado', 'pagada')->count();
         $facturasAnuladas = Factura::where('estado', 'anulada')->count();
-        
+
         $this->command->info('📊 Resumen:');
         $this->command->info("   Total facturas: {$totalFacturas}");
         $this->command->info("   Pendientes: {$facturasPendientes}");

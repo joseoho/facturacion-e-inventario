@@ -26,7 +26,7 @@ return new class extends Migration
             $table->boolean('activo')->default(true);
             $table->text('notas')->nullable();
             $table->timestamps();
-            
+
             // Índices para búsquedas rápidas
             $table->index('nombre');
             $table->index('documento');

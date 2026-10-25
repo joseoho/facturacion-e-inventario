@@ -19,7 +19,7 @@ return new class extends Migration
             $table->foreignId('tasa_cambio_id')->constrained('tasas_cambio')->onDelete('cascade');
             $table->decimal('precio_kg', 15, 4);
             $table->timestamps();
-            
+
             // Índices y restricciones
             $table->unique(['producto_id', 'moneda_id', 'tasa_cambio_id'], 'precios_productos_unique');
             $table->index(['producto_id', 'moneda_id']);

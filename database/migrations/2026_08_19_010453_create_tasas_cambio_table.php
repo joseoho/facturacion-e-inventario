@@ -18,7 +18,7 @@ return new class extends Migration
             $table->date('fecha');
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
             $table->timestamps();
-            
+
             // 👇 Asegurar índices únicos
             $table->unique(['moneda_id', 'fecha'], 'tasas_cambio_unique');
             $table->index(['fecha', 'moneda_id']);

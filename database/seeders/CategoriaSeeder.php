@@ -16,77 +16,77 @@ class CategoriaSeeder extends Seeder
             [
                 'nombre' => 'Lácteos',
                 'descripcion' => 'Productos lácteos: leche, queso, yogurt, mantequilla y derivados',
-                'activo' => true
+                'activo' => true,
             ],
             [
                 'nombre' => 'Carnes',
                 'descripcion' => 'Carnes frescas y procesadas: res, cerdo, pollo, pescado',
-                'activo' => true
+                'activo' => true,
             ],
             [
                 'nombre' => 'Verduras',
                 'descripcion' => 'Verduras y hortalizas frescas de temporada',
-                'activo' => true
+                'activo' => true,
             ],
             [
                 'nombre' => 'Frutas',
                 'descripcion' => 'Frutas frescas de temporada y exóticas',
-                'activo' => true
+                'activo' => true,
             ],
             [
                 'nombre' => 'Granos y Cereales',
                 'descripcion' => 'Arroz, maíz, frijoles, lentejas, cereales',
-                'activo' => true
+                'activo' => true,
             ],
             [
                 'nombre' => 'Embutidos',
                 'descripcion' => 'Jamón, salchichas, chorizos, mortadela',
-                'activo' => true
+                'activo' => true,
             ],
             [
                 'nombre' => 'Panadería',
                 'descripcion' => 'Pan, pasteles, galletas, repostería',
-                'activo' => true
+                'activo' => true,
             ],
             [
                 'nombre' => 'Bebidas',
                 'descripcion' => 'Bebidas gaseosas, jugos, agua, refrescos, cervezas',
-                'activo' => true
+                'activo' => true,
             ],
             [
                 'nombre' => 'Aseo y Limpieza',
                 'descripcion' => 'Productos de limpieza, detergentes, desinfectantes',
-                'activo' => true
+                'activo' => true,
             ],
             [
                 'nombre' => 'Congelados',
                 'descripcion' => 'Alimentos congelados: vegetales, carnes, preparados',
-                'activo' => true
+                'activo' => true,
             ],
             [
                 'nombre' => 'Abarrotes',
                 'descripcion' => 'Productos enlatados, conservas, salsas, aceites',
-                'activo' => true
+                'activo' => true,
             ],
             [
                 'nombre' => 'Higiene Personal',
                 'descripcion' => 'Jabones, champús, cremas, desodorantes',
-                'activo' => true
+                'activo' => true,
             ],
             [
                 'nombre' => 'Bebés',
                 'descripcion' => 'Pañales, leche, alimentos para bebés',
-                'activo' => true
+                'activo' => true,
             ],
             [
                 'nombre' => 'Mascotas',
                 'descripcion' => 'Alimento y accesorios para mascotas',
-                'activo' => true
+                'activo' => true,
             ],
             [
                 'nombre' => 'Electrónica',
                 'descripcion' => 'Dispositivos electrónicos, accesorios, cables',
-                'activo' => true
+                'activo' => true,
             ],
         ];
 

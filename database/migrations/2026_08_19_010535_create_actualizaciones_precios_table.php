@@ -18,7 +18,7 @@ return new class extends Migration
             $table->json('monedas_actualizadas');
             $table->integer('cantidad_productos');
             $table->timestamps();
-            
+
             $table->index('fecha_ejecucion');
             $table->index('user_id');
         });

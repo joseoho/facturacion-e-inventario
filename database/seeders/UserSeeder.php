@@ -20,7 +20,6 @@ class UserSeeder extends Seeder
             'password' => Hash::make('Admin123!'),
             'role' => 'admin',
             'activo' => true,
-            'telefono' => '0412-5550001',
         ]);
 
         // // Usuario Vendedor
@@ -64,6 +63,6 @@ class UserSeeder extends Seeder
         // ]);
 
         // // Usuario inactivo (para pruebas)
-        
+
     }
 }

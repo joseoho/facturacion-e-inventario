@@ -17,7 +17,7 @@ return new class extends Migration
             $table->text('descripcion')->nullable();
             $table->boolean('activo')->default(true);
             $table->timestamps();
-            
+
             // Índices para búsquedas rápidas
             $table->index('nombre');
             $table->index('activo');

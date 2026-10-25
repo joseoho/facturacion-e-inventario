@@ -12,8 +12,13 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Deshabilitar verificaciones de clave foránea
-        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        $esMysql = DB::connection()->getDriverName() === 'mysql';
+
+        // Deshabilitar verificaciones de clave foránea (solo MySQL;
+        // SQLite no soporta esta sentencia y rompía los tests).
+        if ($esMysql) {
+            DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        }
 
         // Limpiar tablas (si existen datos previos)
         $this->truncateTables();
@@ -26,10 +31,13 @@ class DatabaseSeeder extends Seeder
             CategoriaSeeder::class,
             ProductoSeeder::class,
             ClienteSeeder::class,
+            CategoriaEgresoSeeder::class,
         ]);
 
         // Habilitar verificaciones de clave foránea
-        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+        if ($esMysql) {
+            DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+        }
 
         $this->command->info('✅ Todos los seeders han sido ejecutados correctamente.');
     }
@@ -49,7 +57,12 @@ class DatabaseSeeder extends Seeder
             'clientes',
             'facturas',
             'factura_lineas',
-            'actualizaciones_precios'
+            'actualizaciones_precios',
+            'egreso_lineas',
+            'egresos',
+            'proveedores',
+            'categorias_egreso',
+            'movimientos_inventario',
         ];
 
         foreach ($tables as $table) {

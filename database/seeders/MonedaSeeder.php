@@ -17,7 +17,7 @@ class MonedaSeeder extends Seeder
             'codigo' => 'USD',
             'nombre' => 'Dólar Americano',
             'simbolo' => '$',
-            'es_base' => true
+            'es_base' => true,
         ]);
 
         // Monedas no base
@@ -25,28 +25,28 @@ class MonedaSeeder extends Seeder
             'codigo' => 'BS',
             'nombre' => 'Bolívar',
             'simbolo' => 'Bs.',
-            'es_base' => false
+            'es_base' => false,
         ]);
 
         Moneda::create([
             'codigo' => 'COP',
             'nombre' => 'Peso Colombiano',
             'simbolo' => '$',
-            'es_base' => false
+            'es_base' => false,
         ]);
 
         Moneda::create([
             'codigo' => 'MXN',
             'nombre' => 'Peso Mexicano',
             'simbolo' => '$',
-            'es_base' => false
+            'es_base' => false,
         ]);
 
         Moneda::create([
             'codigo' => 'EUR',
             'nombre' => 'Euro',
             'simbolo' => '€',
-            'es_base' => false
+            'es_base' => false,
         ]);
     }
 }

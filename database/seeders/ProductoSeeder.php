@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use App\Models\Producto;
 use App\Models\Categoria;
+use App\Models\Producto;
 use Illuminate\Database\Seeder;
 
 class ProductoSeeder extends Seeder
@@ -36,7 +36,7 @@ class ProductoSeeder extends Seeder
                 'categoria_id' => $lacteos->id,
                 'iva_porcentaje' => 16,
                 'activo' => true,
-                'stock_minimo' => 5.000
+                'stock_minimo' => 5.000,
             ],
             [
                 'sku' => 'LAC-002',
@@ -47,7 +47,7 @@ class ProductoSeeder extends Seeder
                 'categoria_id' => $lacteos->id,
                 'iva_porcentaje' => 16,
                 'activo' => true,
-                'stock_minimo' => 3.000
+                'stock_minimo' => 3.000,
             ],
             [
                 'sku' => 'LAC-003',
@@ -58,7 +58,7 @@ class ProductoSeeder extends Seeder
                 'categoria_id' => $lacteos->id,
                 'iva_porcentaje' => 16,
                 'activo' => true,
-                'stock_minimo' => 4.000
+                'stock_minimo' => 4.000,
             ],
 
             // Carnes
@@ -71,7 +71,7 @@ class ProductoSeeder extends Seeder
                 'categoria_id' => $carnes->id,
                 'iva_porcentaje' => 16,
                 'activo' => true,
-                'stock_minimo' => 8.000
+                'stock_minimo' => 8.000,
             ],
             [
                 'sku' => 'CAR-002',
@@ -82,7 +82,7 @@ class ProductoSeeder extends Seeder
                 'categoria_id' => $carnes->id,
                 'iva_porcentaje' => 16,
                 'activo' => true,
-                'stock_minimo' => 6.000
+                'stock_minimo' => 6.000,
             ],
             [
                 'sku' => 'CAR-003',
@@ -93,7 +93,7 @@ class ProductoSeeder extends Seeder
                 'categoria_id' => $carnes->id,
                 'iva_porcentaje' => 16,
                 'activo' => true,
-                'stock_minimo' => 4.000
+                'stock_minimo' => 4.000,
             ],
 
             // Verduras
@@ -106,7 +106,7 @@ class ProductoSeeder extends Seeder
                 'categoria_id' => $verduras->id,
                 'iva_porcentaje' => 0,
                 'activo' => true,
-                'stock_minimo' => 5.000
+                'stock_minimo' => 5.000,
             ],
             [
                 'sku' => 'VER-002',
@@ -117,7 +117,7 @@ class ProductoSeeder extends Seeder
                 'categoria_id' => $verduras->id,
                 'iva_porcentaje' => 0,
                 'activo' => true,
-                'stock_minimo' => 8.000
+                'stock_minimo' => 8.000,
             ],
             [
                 'sku' => 'VER-003',
@@ -128,7 +128,7 @@ class ProductoSeeder extends Seeder
                 'categoria_id' => $verduras->id,
                 'iva_porcentaje' => 0,
                 'activo' => true,
-                'stock_minimo' => 10.000
+                'stock_minimo' => 10.000,
             ],
 
             // Frutas
@@ -141,7 +141,7 @@ class ProductoSeeder extends Seeder
                 'categoria_id' => $frutas->id,
                 'iva_porcentaje' => 0,
                 'activo' => true,
-                'stock_minimo' => 6.000
+                'stock_minimo' => 6.000,
             ],
             [
                 'sku' => 'FRU-002',
@@ -152,7 +152,7 @@ class ProductoSeeder extends Seeder
                 'categoria_id' => $frutas->id,
                 'iva_porcentaje' => 0,
                 'activo' => true,
-                'stock_minimo' => 3.000
+                'stock_minimo' => 3.000,
             ],
             [
                 'sku' => 'FRU-003',
@@ -163,7 +163,7 @@ class ProductoSeeder extends Seeder
                 'categoria_id' => $frutas->id,
                 'iva_porcentaje' => 0,
                 'activo' => true,
-                'stock_minimo' => 5.000
+                'stock_minimo' => 5.000,
             ],
 
             // Granos y Cereales
@@ -176,7 +176,7 @@ class ProductoSeeder extends Seeder
                 'categoria_id' => $granos->id,
                 'iva_porcentaje' => 16,
                 'activo' => true,
-                'stock_minimo' => 12.000
+                'stock_minimo' => 12.000,
             ],
             [
                 'sku' => 'GRA-002',
@@ -187,7 +187,7 @@ class ProductoSeeder extends Seeder
                 'categoria_id' => $granos->id,
                 'iva_porcentaje' => 16,
                 'activo' => true,
-                'stock_minimo' => 7.000
+                'stock_minimo' => 7.000,
             ],
 
             // Embutidos
@@ -200,7 +200,7 @@ class ProductoSeeder extends Seeder
                 'categoria_id' => $embutidos->id,
                 'iva_porcentaje' => 16,
                 'activo' => true,
-                'stock_minimo' => 3.000
+                'stock_minimo' => 3.000,
             ],
             [
                 'sku' => 'EMB-002',
@@ -211,7 +211,7 @@ class ProductoSeeder extends Seeder
                 'categoria_id' => $embutidos->id,
                 'iva_porcentaje' => 16,
                 'activo' => true,
-                'stock_minimo' => 4.000
+                'stock_minimo' => 4.000,
             ],
 
             // Panadería
@@ -224,7 +224,7 @@ class ProductoSeeder extends Seeder
                 'categoria_id' => $panaderia->id,
                 'iva_porcentaje' => 16,
                 'activo' => true,
-                'stock_minimo' => 2.500
+                'stock_minimo' => 2.500,
             ],
             [
                 'sku' => 'PAN-002',
@@ -235,7 +235,7 @@ class ProductoSeeder extends Seeder
                 'categoria_id' => $panaderia->id,
                 'iva_porcentaje' => 16,
                 'activo' => true,
-                'stock_minimo' => 1.000
+                'stock_minimo' => 1.000,
             ],
 
             // Bebidas
@@ -248,7 +248,7 @@ class ProductoSeeder extends Seeder
                 'categoria_id' => $bebidas->id,
                 'iva_porcentaje' => 16,
                 'activo' => true,
-                'stock_minimo' => 2.000
+                'stock_minimo' => 2.000,
             ],
             [
                 'sku' => 'BEB-002',
@@ -259,7 +259,7 @@ class ProductoSeeder extends Seeder
                 'categoria_id' => $bebidas->id,
                 'iva_porcentaje' => 16,
                 'activo' => true,
-                'stock_minimo' => 4.000
+                'stock_minimo' => 4.000,
             ],
 
             // Aseo
@@ -272,7 +272,7 @@ class ProductoSeeder extends Seeder
                 'categoria_id' => $aseo->id,
                 'iva_porcentaje' => 16,
                 'activo' => true,
-                'stock_minimo' => 5.000
+                'stock_minimo' => 5.000,
             ],
             [
                 'sku' => 'ASE-002',
@@ -283,7 +283,7 @@ class ProductoSeeder extends Seeder
                 'categoria_id' => $aseo->id,
                 'iva_porcentaje' => 16,
                 'activo' => true,
-                'stock_minimo' => 3.000
+                'stock_minimo' => 3.000,
             ],
 
             // Congelados
@@ -296,7 +296,7 @@ class ProductoSeeder extends Seeder
                 'categoria_id' => $congelados->id,
                 'iva_porcentaje' => 16,
                 'activo' => true,
-                'stock_minimo' => 4.000
+                'stock_minimo' => 4.000,
             ],
             [
                 'sku' => 'CON-002',
@@ -307,7 +307,7 @@ class ProductoSeeder extends Seeder
                 'categoria_id' => $congelados->id,
                 'iva_porcentaje' => 16,
                 'activo' => true,
-                'stock_minimo' => 2.000
+                'stock_minimo' => 2.000,
             ],
         ];
 

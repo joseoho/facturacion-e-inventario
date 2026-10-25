@@ -17,7 +17,7 @@ class TasaCambioSeeder extends Seeder
         // Obtener el usuario administrador
         $admin = User::where('role', 'admin')->first();
 
-        if (!$admin) {
+        if (! $admin) {
             $admin = User::first();
         }
 
@@ -39,19 +39,19 @@ class TasaCambioSeeder extends Seeder
             'BS' => [
                 'base' => 755.90,
                 'variacion' => 2.5,
-                'tendencia' => 'creciente'
+                'tendencia' => 'creciente',
             ],
             'COP' => [
                 'base' => 3200.00,
                 'variacion' => 50,
-                'tendencia' => 'creciente'
+                'tendencia' => 'creciente',
             ],
-            
+
             'EUR' => [
                 'base' => 872.90,
                 'variacion' => 0.02,
-                'tendencia' => 'estable'
-            ]
+                'tendencia' => 'estable',
+            ],
         ];
 
         // Generar tasas para cada moneda no base
@@ -64,7 +64,7 @@ class TasaCambioSeeder extends Seeder
                     'moneda_id' => $bs->id,
                     'tasa' => max(700, $tasa),
                     'fecha' => $fecha,
-                    'user_id' => $admin->id
+                    'user_id' => $admin->id,
                 ]);
             }
 
@@ -76,11 +76,10 @@ class TasaCambioSeeder extends Seeder
                     'moneda_id' => $cop->id,
                     'tasa' => max(3800, $tasa),
                     'fecha' => $fecha,
-                    'user_id' => $admin->id
+                    'user_id' => $admin->id,
                 ]);
             }
 
-           
             // Tasa para EUR
             if ($eur) {
                 $variacion = rand(-5, 5) / 1000; // -0.005 a 0.005
@@ -89,7 +88,7 @@ class TasaCambioSeeder extends Seeder
                     'moneda_id' => $eur->id,
                     'tasa' => max(0.90, $tasa),
                     'fecha' => $fecha,
-                    'user_id' => $admin->id
+                    'user_id' => $admin->id,
                 ]);
             }
         }
