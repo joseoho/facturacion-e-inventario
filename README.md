@@ -69,6 +69,20 @@ Doble clic en **`instalar.bat`**. El script:
    `httpd.conf` y `httpd-vhosts.conf` antes de tocarlos y solo agrega lo que falta.
 7. Abre `http://facturacion-inventario.test`.
 
+Al terminar, deja un acceso en la carpeta de Inicio de Windows que levanta Apache y
+MySQL al iniciar sesión (si ya están corriendo, no hace nada). Deja rastro en
+`storage/logs/xampp-autostart.log`.
+
+Para quitar ese arranque automático:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\autostart.ps1 -Remove
+```
+
+> Arranca al **iniciar sesión**, no antes del login. Si necesitas que funcione al
+> encender el equipo sin iniciar sesión, habría que instalar Apache y MySQL como
+> servicios de Windows.
+
 Diagnóstico sin instalar nada:
 
 ```bat

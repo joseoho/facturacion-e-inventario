@@ -11,6 +11,7 @@ REM  - Instala Composer si falta.
 REM  - Crea la base de datos y ejecuta migraciones + seeders.
 REM  - Compila los assets con Vite.
 REM  - Configura el VirtualHost de Apache (sin borrar los existentes).
+REM  - Deja Apache y MySQL arrancando al iniciar sesion de Windows.
 REM
 REM  Requisitos: XAMPP (PHP 8.2+ y MySQL). Node.js y Git se intentan
 REM  instalar automaticamente si faltan.
@@ -234,6 +235,16 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "scripts\setup-vhost.ps1" -A
 if errorlevel 1 (
     echo [AVISO] No se pudo configurar el vhost automaticamente.
     echo     Revisa los permisos de C:\xampp\apache o configura Apache a mano.
+)
+
+REM ------------------------------------------------------------
+REM 10) Arranque automatico de XAMPP al iniciar sesion
+REM ------------------------------------------------------------
+echo Configurando arranque automatico de XAMPP...
+powershell -NoProfile -ExecutionPolicy Bypass -File "scripts\autostart.ps1" -AppPath "%APP_DIR%"
+if errorlevel 1 (
+    echo [AVISO] No se pudo configurar el arranque automatico.
+    echo     Puedes hacerlo luego con: powershell -File scripts\autostart.ps1
 )
 
 echo.
