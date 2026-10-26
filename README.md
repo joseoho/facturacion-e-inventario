@@ -134,7 +134,13 @@ producción.
 
 ### Error 419 «Page Expired» al iniciar sesión
 
-Es un problema de **CSRF/sesión**, no del código. Revísalo en este orden:
+Es un problema de **CSRF/sesión**, no del código.
+
+**Causa más frecuente en instalaciones nuevas:** quedó una caché de configuración
+de una ejecución anterior (por ejemplo, con otro `APP_KEY` o sin la tabla
+`sessions`). En ese caso, `php artisan optimize:clear` es lo que lo resuelve.
+
+Revísalo en este orden:
 
 1. Limpia la caché de configuración:
 
