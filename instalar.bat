@@ -240,6 +240,14 @@ if errorlevel 1 (
 call npm run build
 if errorlevel 1 goto :fin_error
 
+if not exist "public\build\manifest.json" (
+    echo [X] Vite no genero public\build\manifest.json.
+    echo     Verifica Node.js 20 o superior y ejecuta manualmente:
+    echo         npm install
+    echo         npm run build
+    goto :fin_error
+)
+
 "%PHP%" artisan storage:link >nul 2>&1
 echo [OK] Assets compilados.
 

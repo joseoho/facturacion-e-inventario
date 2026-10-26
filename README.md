@@ -67,7 +67,7 @@ Doble clic en **`instalar.bat`**. El script:
    `C:\xampp\htdocs\facturacion-inventario`.
 3. Instala Composer si falta.
 4. Crea la base `facturacion_db` y ejecuta migraciones y seeders.
-5. Compila los assets con Vite (intenta instalar Node LTS con `winget` si falta).
+5. Compila los assets con Vite (`npm run build`; intenta instalar Node LTS con `winget` si falta).
 6. Configura el VirtualHost **sin borrar los existentes**: respalda
    `httpd.conf` y `httpd-vhosts.conf` antes de tocarlos y solo agrega lo que falta.
 7. Abre `http://facturacion-inventario.test`.
@@ -92,13 +92,49 @@ Diagnóstico sin instalar nada:
 instalar.bat --check
 ```
 
-Solo configurar el vhost (no instala la aplicación):
+Solo configurar el vhost (no instala la aplicación). Ejecutar en PowerShell **como administrador**:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts\setup-vhost.ps1 -AppPath "C:\xampp\htdocs\facturacion-inventario"
+powershell -ExecutionPolicy Bypass -File "C:\xampp\htdocs\facturacion-inventario\scripts\setup-vhost.ps1" -AppPath "C:\xampp\htdocs\facturacion-inventario"
 ```
 
 Si tu MySQL tiene contraseña, edita `DB_PASS` al inicio de `instalar.bat`.
+
+## Solución de problemas
+
+### El navegador muestra `DNS_PROBE_FINISHED_NXDOMAIN`
+
+El nombre `facturacion-inventario.test` no resuelve. Ejecuta el comando de vhost de
+arriba (como administrador) y luego:
+
+```powershell
+ipconfig /flushdns
+```
+
+Comprueba que exista esta línea en `C:\Windows\System32\drivers\etc\hosts`:
+
+```
+127.0.0.1 facturacion-inventario.test
+```
+
+### El navegador muestra `Vite manifest not found`
+
+Faltan los assets compilados. El instalador ejecuta **`npm run build`** (no
+`npm run dev`). Si ese paso falló, entra a la carpeta del proyecto y ejecuta:
+
+```bash
+npm install
+npm run build
+```
+
+Al terminar debe existir `public/build/manifest.json`. `npm run dev` es solo para
+desarrollo: levanta un servidor que debe quedar abierto y no genera el manifest de
+producción.
+
+### Error 500 o pantalla en blanco
+
+Revisa `storage/logs/laravel.log` y confirma que `storage/` y `bootstrap/cache/`
+tengan permisos de escritura.
 
 ## Comandos
 
