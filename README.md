@@ -132,6 +132,51 @@ Al terminar debe existir `public/build/manifest.json`. `npm run dev` es solo par
 desarrollo: levanta un servidor que debe quedar abierto y no genera el manifest de
 producción.
 
+### Error 419 «Page Expired» al iniciar sesión
+
+Es un problema de **CSRF/sesión**, no del código. Revísalo en este orden:
+
+1. Limpia la caché de configuración:
+
+   ```bash
+   php artisan optimize:clear
+   ```
+
+2. Revisa el `.env` (para HTTP local debe verse así):
+
+   ```
+   APP_KEY=base64:...
+   SESSION_DRIVER=database
+   SESSION_ENCRYPT=false
+   SESSION_DOMAIN=null
+   ```
+
+   Si tienes `SESSION_SECURE_COOKIE=true` o `SESSION_ENCRYPT=true`, el navegador
+   no envía la cookie por HTTP y el POST llega sin sesión. Ponlos en `false` (o
+   elimínalos) y vuelve a ejecutar `php artisan optimize:clear`.
+
+3. Si `APP_KEY` está vacía, genera una nueva:
+
+   ```bash
+   php artisan key:generate
+   ```
+
+4. Entra siempre por el mismo host (`http://facturacion-inventario.test`); no
+   mezcles `localhost` ni `127.0.0.1`.
+
+5. Confirma que exista la tabla `sessions`:
+
+   ```bash
+   php artisan db:show
+   ```
+
+   Con `SESSION_DRIVER=database`, si la tabla no existe o el usuario de MySQL no
+   puede escribir, la sesión no se guarda.
+
+6. Para aislar el problema, cambia temporalmente `SESSION_DRIVER=file`, limpia la
+   caché y reintenta. Si con `file` funciona, el problema está en la tabla o en
+   los permisos de `sessions`.
+
 ### Error 500 o pantalla en blanco
 
 Revisa `storage/logs/laravel.log` y confirma que `storage/` y `bootstrap/cache/`
