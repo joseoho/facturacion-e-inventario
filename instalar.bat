@@ -207,10 +207,19 @@ if errorlevel 1 (
 
 REM Seeder idempotente: crea lo que falte y no borra datos existentes.
 echo     Cargando datos iniciales...
-"%PHP%" artisan db:seed --class=InstalacionSeeder --force
-if errorlevel 1 (
-    echo [X] Fallaron los seeders.
-    goto :fin_error
+"%PHP%" artisan db:seed --class=InstalacionSeeder --force > "%APP_DIR%\storage\logs\seed-instalacion.log" 2>&1
+set "SEED_EXIT=%errorlevel%"
+type "%APP_DIR%\storage\logs\seed-instalacion.log"
+
+if not "%SEED_EXIT%"=="0" (
+    echo [AVISO] Reintentando seeders con autoload regenerado...
+    call %COMPOSER_CMD% dump-autoload --no-interaction >nul 2>&1
+    "%PHP%" artisan db:seed --class=InstalacionSeeder --force
+    if errorlevel 1 (
+        echo [X] Fallaron los seeders.
+        echo     Detalle guardado en storage\logs\seed-instalacion.log
+        goto :fin_error
+    )
 )
 
 echo [OK] Migraciones y datos iniciales aplicados.
