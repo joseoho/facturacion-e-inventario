@@ -312,7 +312,7 @@ class ProductoSeeder extends Seeder
         ];
 
         foreach ($productos as $producto) {
-            Producto::create($producto);
+            Producto::firstOrCreate(['sku' => $producto['sku']], $producto);
         }
     }
 }

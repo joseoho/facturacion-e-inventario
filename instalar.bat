@@ -193,21 +193,15 @@ if errorlevel 1 (
     goto :fin_error
 )
 
-set "USERS=0"
-"%MYSQL%" %MYSQL_AUTH% -N -e "SELECT COUNT(*) FROM %DB_NAME%.users" > "%TEMP%\fact_users.txt" 2>nul
-set /p USERS=<"%TEMP%\fact_users.txt"
-del "%TEMP%\fact_users.txt" >nul 2>&1
-if not defined USERS set "USERS=0"
-
-if "%USERS%"=="0" (
-    echo     Base vacia: ejecutando seeders...
-    "%PHP%" artisan db:seed --force
-    if errorlevel 1 goto :fin_error
-) else (
-    echo [OK] La base ya tiene usuarios, no se ejecutan seeders.
+REM Seeder idempotente: crea lo que falte y no borra datos existentes.
+echo     Cargando datos iniciales...
+"%PHP%" artisan db:seed --class=InstalacionSeeder --force
+if errorlevel 1 (
+    echo [X] Fallaron los seeders.
+    goto :fin_error
 )
 
-echo [OK] Migraciones aplicadas.
+echo [OK] Migraciones y datos iniciales aplicados.
 
 REM ------------------------------------------------------------
 REM 8) Assets (Node + Vite)

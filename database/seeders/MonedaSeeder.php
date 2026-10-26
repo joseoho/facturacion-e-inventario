@@ -12,41 +12,16 @@ class MonedaSeeder extends Seeder
      */
     public function run(): void
     {
-        // Moneda Base (USD)
-        Moneda::create([
-            'codigo' => 'USD',
-            'nombre' => 'Dólar Americano',
-            'simbolo' => '$',
-            'es_base' => true,
-        ]);
+        $monedas = [
+            ['codigo' => 'USD', 'nombre' => 'Dólar Americano', 'simbolo' => '$', 'es_base' => true],
+            ['codigo' => 'BS', 'nombre' => 'Bolívar', 'simbolo' => 'Bs.', 'es_base' => false],
+            ['codigo' => 'COP', 'nombre' => 'Peso Colombiano', 'simbolo' => '$', 'es_base' => false],
+            ['codigo' => 'MXN', 'nombre' => 'Peso Mexicano', 'simbolo' => '$', 'es_base' => false],
+            ['codigo' => 'EUR', 'nombre' => 'Euro', 'simbolo' => '€', 'es_base' => false],
+        ];
 
-        // Monedas no base
-        Moneda::create([
-            'codigo' => 'BS',
-            'nombre' => 'Bolívar',
-            'simbolo' => 'Bs.',
-            'es_base' => false,
-        ]);
-
-        Moneda::create([
-            'codigo' => 'COP',
-            'nombre' => 'Peso Colombiano',
-            'simbolo' => '$',
-            'es_base' => false,
-        ]);
-
-        Moneda::create([
-            'codigo' => 'MXN',
-            'nombre' => 'Peso Mexicano',
-            'simbolo' => '$',
-            'es_base' => false,
-        ]);
-
-        Moneda::create([
-            'codigo' => 'EUR',
-            'nombre' => 'Euro',
-            'simbolo' => '€',
-            'es_base' => false,
-        ]);
+        foreach ($monedas as $moneda) {
+            Moneda::firstOrCreate(['codigo' => $moneda['codigo']], $moneda);
+        }
     }
 }

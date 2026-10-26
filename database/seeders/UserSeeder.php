@@ -13,14 +13,16 @@ class UserSeeder extends Seeder
      */
     public function run(): void
     {
-        // Usuario Administrador
-        User::create([
-            'name' => 'Administrador Principal',
-            'email' => 'admin@facturador.com',
-            'password' => Hash::make('Admin123!'),
-            'role' => 'admin',
-            'activo' => true,
-        ]);
+        // Usuario Administrador (no duplica si ya existe)
+        User::firstOrCreate(
+            ['email' => 'admin@facturador.com'],
+            [
+                'name' => 'Administrador Principal',
+                'password' => Hash::make('Admin123!'),
+                'role' => 'admin',
+                'activo' => true,
+            ]
+        );
 
         // // Usuario Vendedor
         // User::create([

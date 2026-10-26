@@ -66,7 +66,8 @@ Doble clic en **`instalar.bat`**. El script:
 2. Descarga el proyecto si no está (por `git clone` o ZIP si no hay Git), siempre en
    `C:\xampp\htdocs\facturacion-inventario`.
 3. Instala Composer si falta.
-4. Crea la base `facturacion_db` y ejecuta migraciones y seeders.
+4. Crea la base `facturacion_db`, ejecuta migraciones y un seeder idempotente
+   (`InstalacionSeeder`): crea lo que falte y **no borra datos** existentes.
 5. Compila los assets con Vite (`npm run build`; intenta instalar Node LTS con `winget` si falta).
 6. Configura el VirtualHost **sin borrar los existentes**: respalda
    `httpd.conf` y `httpd-vhosts.conf` antes de tocarlos y solo agrega lo que falta.

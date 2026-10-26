@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
+use App\Models\CategoriaEgreso;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
 
 class CategoriaEgresoSeeder extends Seeder
 {
@@ -21,14 +21,14 @@ class CategoriaEgresoSeeder extends Seeder
         ];
 
         foreach ($categorias as $categoria) {
-            DB::table('categorias_egreso')->insert([
-                'nombre' => $categoria['nombre'],
-                'descripcion' => $categoria['descripcion'],
-                'afecta_inventario' => $categoria['afecta_inventario'],
-                'activo' => true,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
+            CategoriaEgreso::firstOrCreate(
+                ['nombre' => $categoria['nombre']],
+                [
+                    'descripcion' => $categoria['descripcion'],
+                    'afecta_inventario' => $categoria['afecta_inventario'],
+                    'activo' => true,
+                ]
+            );
         }
     }
 }

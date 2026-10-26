@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class DatabaseSeeder extends Seeder
 {
@@ -24,15 +25,7 @@ class DatabaseSeeder extends Seeder
         $this->truncateTables();
 
         // Ejecutar seeders en orden correcto
-        $this->call([
-            UserSeeder::class,
-            MonedaSeeder::class,
-            TasaCambioSeeder::class,
-            CategoriaSeeder::class,
-            ProductoSeeder::class,
-            ClienteSeeder::class,
-            CategoriaEgresoSeeder::class,
-        ]);
+        $this->call(InstalacionSeeder::class);
 
         // Habilitar verificaciones de clave foránea
         if ($esMysql) {
@@ -58,7 +51,6 @@ class DatabaseSeeder extends Seeder
             'facturas',
             'factura_lineas',
             'actualizaciones_precios',
-            'egreso_lineas',
             'egresos',
             'proveedores',
             'categorias_egreso',
@@ -66,10 +58,12 @@ class DatabaseSeeder extends Seeder
         ];
 
         foreach ($tables as $table) {
-            if (DB::table($table)->exists()) {
-                DB::table($table)->truncate();
-                $this->command->info("Tabla {$table} truncada.");
+            if (! Schema::hasTable($table)) {
+                continue;
             }
+
+            DB::table($table)->truncate();
+            $this->command->info("Tabla {$table} truncada.");
         }
     }
 }
