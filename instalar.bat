@@ -98,6 +98,18 @@ if "%APP_DIR:~-1%"=="\" set "APP_DIR=%APP_DIR:~0,-1%"
 cd /d "%APP_DIR%"
 echo [OK] Proyecto en %APP_DIR%
 
+REM Si es un clon de Git, traer los ultimos cambios antes de instalar.
+if exist ".git" (
+    where git >nul 2>&1
+    if not errorlevel 1 (
+        echo Actualizando codigo con git pull...
+        git pull --ff-only
+        if errorlevel 1 (
+            echo [AVISO] No se pudo actualizar el codigo. Se continua con la version local.
+        )
+    )
+)
+
 REM ------------------------------------------------------------
 REM 2) Composer
 REM ------------------------------------------------------------

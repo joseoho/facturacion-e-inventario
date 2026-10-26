@@ -1,5 +1,10 @@
 * text=auto eol=lf
 
+# cmd.exe no resuelve etiquetas (goto) en archivos con saltos LF.
+*.bat -text
+*.cmd -text
+*.vbs -text
+
 *.blade.php diff=html
 *.css diff=css
 *.html diff=html
