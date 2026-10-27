@@ -10,6 +10,7 @@ use App\Models\TasaCambio;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class ProductoController extends Controller
 {
@@ -74,13 +75,21 @@ class ProductoController extends Controller
             'sku' => 'required|string|max:50|unique:productos,sku',
             'nombre' => 'required|string|max:200',
             'descripcion' => 'nullable|string',
-            'precio_kg_usd' => 'required|numeric|min:0',
-            'stock_kg' => 'required|numeric|min:0',
+            'precio_kg_usd' => 'required|numeric|min:0|max:99999999999.9999',
+            'stock_kg' => 'required|numeric|min:0|max:999999999999.999',
             'categoria_id' => 'required|exists:categorias,id',
             'iva_porcentaje' => 'required|numeric|min:0|max:100',
-            'stock_minimo' => 'nullable|numeric|min:0',
+            'stock_minimo' => 'nullable|numeric|min:0|max:999999999999.999',
             'activo' => 'boolean',
             'imagen' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'moneda_id' => 'nullable|exists:monedas,id',
+            'precio_kg_local' => 'nullable|numeric|min:0|max:99999999999.9999',
+            'tasa_cambio_id' => [
+                'nullable',
+                Rule::exists('tasas_cambio', 'id')->where(
+                    fn ($query) => $query->where('moneda_id', $request->input('moneda_id'))
+                ),
+            ],
         ]);
 
         // Manejar la imagen
@@ -151,13 +160,21 @@ class ProductoController extends Controller
             'sku' => 'required|string|max:50|unique:productos,sku,'.$producto->id,
             'nombre' => 'required|string|max:200',
             'descripcion' => 'nullable|string',
-            'precio_kg_usd' => 'required|numeric|min:0',
-            'stock_kg' => 'required|numeric|min:0',
+            'precio_kg_usd' => 'required|numeric|min:0|max:99999999999.9999',
+            'stock_kg' => 'required|numeric|min:0|max:999999999999.999',
             'categoria_id' => 'required|exists:categorias,id',
             'iva_porcentaje' => 'required|numeric|min:0|max:100',
-            'stock_minimo' => 'nullable|numeric|min:0',
+            'stock_minimo' => 'nullable|numeric|min:0|max:999999999999.999',
             'activo' => 'boolean',
             'imagen' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'moneda_id' => 'nullable|exists:monedas,id',
+            'precio_kg_local' => 'nullable|numeric|min:0|max:99999999999.9999',
+            'tasa_cambio_id' => [
+                'nullable',
+                Rule::exists('tasas_cambio', 'id')->where(
+                    fn ($query) => $query->where('moneda_id', $request->input('moneda_id'))
+                ),
+            ],
         ]);
 
         // Manejar la imagen
@@ -230,9 +247,22 @@ class ProductoController extends Controller
     {
         $this->authorize('gestionarPrecios', $producto);
         $validated = $request->validate([
-            'moneda_id' => 'required|exists:monedas,id',
-            'tasa_cambio_id' => 'required|exists:tasas_cambio,id',
-            'precio_kg' => 'required|numeric|min:0',
+            'moneda_id' => [
+                'required',
+                'exists:monedas,id',
+                Rule::unique('precios_productos', 'moneda_id')
+                    ->where('producto_id', $producto->id),
+            ],
+            'tasa_cambio_id' => [
+                'required',
+                Rule::exists('tasas_cambio', 'id')->where(
+                    fn ($query) => $query->where('moneda_id', $request->input('moneda_id'))
+                ),
+            ],
+            'precio_kg' => 'required|numeric|min:0|max:99999999999.9999',
+        ], [
+            'moneda_id.unique' => 'Ya existe un precio para esta moneda en este producto.',
+            'tasa_cambio_id.exists' => 'La tasa seleccionada no pertenece a la moneda.',
         ]);
 
         $producto->preciosProductos()->create($validated);

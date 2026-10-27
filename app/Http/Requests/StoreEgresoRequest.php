@@ -21,7 +21,7 @@ class StoreEgresoRequest extends FormRequest
             'categoria_egreso_id' => ['required', 'integer', 'exists:categorias_egreso,id'],
             'proveedor_nombre' => ['nullable', 'string', 'max:200'],
             'moneda_id' => ['required', 'integer', 'exists:monedas,id'],
-            'monto' => ['required', 'numeric', 'gt:0', 'max:9999999999'],
+            'monto' => ['required', 'numeric', 'gt:0', 'max:99999999.9999'],
             'fecha_egreso' => ['required', 'date'],
             'estado' => ['required', Rule::in([Egreso::ESTADO_PENDIENTE, Egreso::ESTADO_PAGADO])],
             'metodo_pago' => ['nullable', Rule::in(array_keys(Egreso::METODOS_PAGO))],

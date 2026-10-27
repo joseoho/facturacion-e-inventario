@@ -70,4 +70,12 @@ class AccesoTest extends TestCase
     {
         $this->get('/register')->assertNotFound();
     }
+
+    public function test_las_respuestas_incluyen_cabeceras_de_seguridad(): void
+    {
+        $this->get(route('login'))
+            ->assertHeader('X-Content-Type-Options', 'nosniff')
+            ->assertHeader('X-Frame-Options', 'SAMEORIGIN')
+            ->assertHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    }
 }

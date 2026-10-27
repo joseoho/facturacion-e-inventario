@@ -5,6 +5,28 @@
 **Alcance:** formularios web autenticados y de acceso.
 **Leyenda:** ✅ implementado · ⚠️ parcial · ❌ ausente
 
+## Actualización 2026-10-27 — correcciones aplicadas
+
+| Hallazgo | Estado | Detalle |
+|---|---|---|
+| `NULL` en crédito de clientes | ✅ | Normalizado a `0`; longitudes alineadas a la BD. |
+| Sin rate limiting | ✅ | Login 5/min por email+IP; solicitud de reset 5/min; reset 10/min; cambio de contraseña 6/min. |
+| Desajustes de longitud/overflow | ✅ | Monedas 50/5, categoría egreso 255, egreso `monto` 99.999.999,9999, productos con máximos de `decimal`. |
+| Precio duplicado producto+moneda | ✅ | `Rule::unique` → 422; la tasa debe pertenecer a la moneda. |
+| Moneda de factura ≠ moneda de pago | ✅ | Select sincronizado y validación cruzada en el backend. |
+| `fecha_emision` ignorada | ✅ | Se envía, valida (`<= hoy`) y persiste. |
+| Fechas de filtros sin validar | ✅ | `desde`, `hasta`, `fecha_desde`, `fecha_hasta` y `fecha` validados. |
+| `per_page` sin límite | ✅ | Acotado a 1–100 en tasas. |
+| Sin cabeceras de seguridad | ✅ | `nosniff`, `SAMEORIGIN`, `Referrer-Policy` y `Permissions-Policy`. |
+| Doble envío | ✅ | Los formularios clásicos deshabilitan el botón al enviar. |
+| Upload sin antivirus / público | ⚠️ | MIME real y 2 MB; sigue sin análisis antimalware. |
+| Unicidad solo en aplicación | ⚠️ | `clientes.email` y `categorias_egreso.nombre` sin índice único en BD. |
+| Mensajes de auth en inglés / WCAG / máscaras | ⚠️ | Pendiente (P2). |
+
+**Suite tras las correcciones:** 70 tests, 227 aserciones.
+
+---
+
 ---
 
 ## 0. Hallazgo crítico corregido

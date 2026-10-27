@@ -56,7 +56,7 @@
                     <!-- Moneda -->
                     <div class="mb-3">
                         <label class="form-label fw-bold">Moneda <span class="text-danger">*</span></label>
-                        <select class="form-select" x-model="moneda_id" required>
+                        <select class="form-select" x-model="moneda_id" @change="sincronizarMoneda()" required>
                             <option value="">Seleccionar moneda...</option>
                             @foreach($monedas as $moneda)
                                 <option value="{{ $moneda->id }}">
@@ -405,12 +405,24 @@ document.addEventListener('alpine:init', () => {
         // =============================================
         // SELECCIONAR MONEDA DE PAGO
         // =============================================
+        sincronizarMoneda() {
+            const moneda = this.monedas.find(m => m.id === this.moneda_id);
+            if (!moneda) return;
+
+            if (['USD', 'BS', 'COP'].includes(moneda.codigo) && this.monedaPago !== moneda.codigo) {
+                this.seleccionarMonedaPago(moneda.codigo);
+            }
+        },
+
                 seleccionarMonedaPago(moneda) {
             this.monedaPago = moneda;
             
             // ⚠️ Nota: la tasa se usa solo para MOSTRAR info al usuario,
             // NO para calcular precios. Los precios los impone el backend.
             const monedaId = this.monedaIdDesdeCodigo(moneda);
+            if (monedaId) {
+                this.moneda_id = monedaId;
+            }
             const monedaObj = this.monedas.find(m => m.id === monedaId);
             
             if (monedaObj) {
@@ -873,6 +885,7 @@ document.addEventListener('alpine:init', () => {
                     cliente_id: parseInt(this.cliente_id),
                     moneda_id: parseInt(this.moneda_id),
                     moneda_pago: this.monedaPago,
+                    fecha_emision: this.fecha_emision,
                     productos: this.items.map(item => ({
                         producto_id: parseInt(item.id),
                         cantidad_kg: parseFloat(item.cantidad_kg),

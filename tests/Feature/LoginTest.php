@@ -40,4 +40,24 @@ class LoginTest extends TestCase
 
         $this->assertGuest();
     }
+
+    public function test_bloquea_intentos_de_login_repetidos(): void
+    {
+        $user = User::factory()->create([
+            'email' => 'bruteforce@example.com',
+            'password' => 'secret123',
+        ]);
+
+        for ($i = 0; $i < 5; $i++) {
+            $this->post('/login', [
+                'email' => $user->email,
+                'password' => 'incorrecta',
+            ]);
+        }
+
+        $this->post('/login', [
+            'email' => $user->email,
+            'password' => 'incorrecta',
+        ])->assertStatus(429);
+    }
 }

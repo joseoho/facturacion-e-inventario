@@ -3,9 +3,13 @@
 namespace App\Providers;
 
 use App\Models\User;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Str;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -25,6 +29,29 @@ class AppServiceProvider extends ServiceProvider
         // La interfaz usa Bootstrap 5: sin esto los paginadores se
         // renderizan con el markup de Tailwind y quedan sin estilos.
         Paginator::useBootstrapFive();
+
+        // ============================================================
+        // RATE LIMITING — login, recuperación y cambio de contraseña
+        // ============================================================
+        RateLimiter::for('login', function (Request $request) {
+            return Limit::perMinute(5)->by(
+                Str::lower((string) $request->input('email')).'|'.$request->ip()
+            );
+        });
+
+        RateLimiter::for('password-email', function (Request $request) {
+            return Limit::perMinute(5)->by($request->ip());
+        });
+
+        RateLimiter::for('password-reset', function (Request $request) {
+            return Limit::perMinute(10)->by($request->ip());
+        });
+
+        RateLimiter::for('change-password', function (Request $request) {
+            return Limit::perMinute(6)->by(
+                $request->user()?->id ?: $request->ip()
+            );
+        });
 
         // ============================================================
         // GATE::BEFORE — Los admins pasan TODAS las autorizaciones

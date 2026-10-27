@@ -23,6 +23,14 @@ class EgresoController extends Controller
     {
         $this->authorize('viewAny', Egreso::class);
 
+        $request->validate([
+            'desde' => ['nullable', 'date'],
+            'hasta' => ['nullable', 'date'],
+            'categoria_egreso_id' => ['nullable', 'integer'],
+            'moneda_id' => ['nullable', 'integer'],
+            'estado' => ['nullable', 'in:pendiente,pagado,anulado'],
+        ]);
+
         $query = Egreso::query()
             ->with(['categoria:id,nombre', 'moneda:id,codigo', 'producto:id,nombre', 'user:id,name']);
 

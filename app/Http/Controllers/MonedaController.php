@@ -55,8 +55,8 @@ class MonedaController extends Controller
         $this->authorize('create', Moneda::class);
         $validated = $request->validate([
             'codigo' => ['required', 'string', 'max:3', 'unique:monedas,codigo'],
-            'nombre' => ['required', 'string', 'max:100'],
-            'simbolo' => ['required', 'string', 'max:10'],
+            'nombre' => ['required', 'string', 'max:50'],
+            'simbolo' => ['required', 'string', 'max:5'],
             'es_base' => ['boolean'],
             'activo' => ['boolean'],
         ]);
@@ -114,8 +114,8 @@ class MonedaController extends Controller
         $this->authorize('update', $moneda);
         $validated = $request->validate([
             'codigo' => ['required', 'string', 'max:3', Rule::unique('monedas')->ignore($moneda->id)],
-            'nombre' => ['required', 'string', 'max:100'],
-            'simbolo' => ['required', 'string', 'max:10'],
+            'nombre' => ['required', 'string', 'max:50'],
+            'simbolo' => ['required', 'string', 'max:5'],
             'es_base' => ['boolean'],
             'activo' => ['boolean'],
         ]);

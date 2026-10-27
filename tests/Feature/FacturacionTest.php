@@ -195,4 +195,64 @@ class FacturacionTest extends TestCase
             ->assertOk()
             ->assertSee($factura->numero);
     }
+
+    public function test_rechaza_moneda_que_no_coincide_con_la_moneda_de_pago(): void
+    {
+        $admin = $this->admin();
+        $this->monedaBase();
+        $bs = Moneda::factory()->create(['codigo' => 'BS']);
+        $cliente = Cliente::factory()->create();
+        $producto = Producto::factory()->create(['stock_kg' => 10]);
+
+        $this->actingAs($admin)->postJson(route('facturas.store'), [
+            'cliente_id' => $cliente->id,
+            'moneda_id' => $bs->id,
+            'moneda_pago' => 'USD',
+            'productos' => [
+                ['producto_id' => $producto->id, 'cantidad_kg' => 1, 'precio_kg' => 10],
+            ],
+        ])->assertStatus(422);
+
+        $this->assertSame(0, Factura::count());
+    }
+
+    public function test_guarda_la_fecha_de_emision_enviada(): void
+    {
+        $admin = $this->admin();
+        $moneda = $this->monedaBase();
+        $cliente = Cliente::factory()->create();
+        $producto = Producto::factory()->create(['stock_kg' => 10, 'iva_porcentaje' => 0]);
+
+        $this->actingAs($admin)->postJson(route('facturas.store'), [
+            'cliente_id' => $cliente->id,
+            'moneda_id' => $moneda->id,
+            'moneda_pago' => 'USD',
+            'fecha_emision' => '2026-01-15',
+            'productos' => [
+                ['producto_id' => $producto->id, 'cantidad_kg' => 1, 'precio_kg' => 10],
+            ],
+        ])->assertCreated();
+
+        $this->assertSame('2026-01-15', Factura::firstOrFail()->fecha_emision->toDateString());
+    }
+
+    public function test_rechaza_fecha_de_emision_futura(): void
+    {
+        $admin = $this->admin();
+        $moneda = $this->monedaBase();
+        $cliente = Cliente::factory()->create();
+        $producto = Producto::factory()->create(['stock_kg' => 10]);
+
+        $this->actingAs($admin)->postJson(route('facturas.store'), [
+            'cliente_id' => $cliente->id,
+            'moneda_id' => $moneda->id,
+            'moneda_pago' => 'USD',
+            'fecha_emision' => now()->addDay()->toDateString(),
+            'productos' => [
+                ['producto_id' => $producto->id, 'cantidad_kg' => 1, 'precio_kg' => 10],
+            ],
+        ])->assertStatus(422);
+
+        $this->assertSame(0, Factura::count());
+    }
 }

@@ -70,7 +70,11 @@ class FacturaController extends Controller
             // ============================================================
             // Monedas activas — colección para el <select> de la vista
             // ============================================================
-            $monedas = Moneda::where('activo', true)->orderBy('id')->get();
+            // Solo las monedas que se pueden cobrar en la interfaz.
+            $monedas = Moneda::whereIn('codigo', ['USD', 'BS', 'COP'])
+                ->where('activo', true)
+                ->orderBy('id')
+                ->get();
 
             // ============================================================
             // Array plano para Alpine (evita problemas con @json)
@@ -158,10 +162,11 @@ class FacturaController extends Controller
                 'cliente_id' => 'required|exists:clientes,id',
                 'moneda_id' => 'required|exists:monedas,id',
                 'moneda_pago' => 'required|string|in:USD,COP,BS,VES,EUR',
-                'productos' => 'required|array|min:1',
+                'fecha_emision' => 'nullable|date|before_or_equal:today',
+                'productos' => 'required|array|min:1|max:50',
                 'productos.*.producto_id' => 'required|exists:productos,id',
                 'productos.*.cantidad_kg' => 'required|numeric|min:0.001|max:9999.999',
-                'productos.*.precio_kg' => 'required|numeric|min:0',
+                'productos.*.precio_kg' => 'required|numeric|min:0|max:99999999999.9999',
             ], [
                 'moneda_pago.required' => 'Debes seleccionar la moneda de pago',
                 'moneda_pago.in' => 'Moneda de pago no válida',
@@ -190,6 +195,12 @@ class FacturaController extends Controller
                 if (! $monedaPago) {
                     throw new Exception(
                         "Moneda de pago '{$validated['moneda_pago']}' no existe o está inactiva."
+                    );
+                }
+
+                if ((int) $validated['moneda_id'] !== (int) $monedaPago->id) {
+                    throw new Exception(
+                        'La moneda seleccionada no coincide con la moneda de pago.'
                     );
                 }
 
@@ -250,7 +261,7 @@ class FacturaController extends Controller
                     'total_impuesto' => 0,
                     'total' => 0,
                     'estado' => Factura::ESTADO_PENDIENTE,
-                    'fecha_emision' => now(),
+                    'fecha_emision' => $validated['fecha_emision'] ?? now()->toDateString(),
                 ]);
 
                 $subtotal = 0;

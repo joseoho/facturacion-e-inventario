@@ -63,4 +63,15 @@ class MonedaTest extends TestCase
             'activo' => 1,
         ])->assertSessionHasErrors('es_base');
     }
+
+    public function test_rechaza_longitudes_mayores_a_la_columna(): void
+    {
+        $admin = User::factory()->admin()->create();
+
+        $this->actingAs($admin)->post(route('monedas.store'), [
+            'codigo' => 'TST',
+            'nombre' => str_repeat('A', 51),
+            'simbolo' => 'ABCDEF',
+        ])->assertSessionHasErrors(['nombre', 'simbolo']);
+    }
 }

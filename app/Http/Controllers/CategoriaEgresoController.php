@@ -85,7 +85,7 @@ class CategoriaEgresoController extends Controller
                 'max:100',
                 Rule::unique('categorias_egreso', 'nombre')->ignore($ignorarId),
             ],
-            'descripcion' => ['nullable', 'string', 'max:500'],
+            'descripcion' => ['nullable', 'string', 'max:255'],
             'afecta_inventario' => ['boolean'],
             'activo' => ['boolean'],
         ]);

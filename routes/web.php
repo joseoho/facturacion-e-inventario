@@ -41,7 +41,9 @@ Route::middleware(['auth'])->group(function () {
     // PERFIL — todos los usuarios autenticados
     // ------------------------------------------------------------
     Route::get('perfil', [PerfilController::class, 'edit'])->name('perfil.edit');
-    Route::put('perfil/password', [PerfilController::class, 'updatePassword'])->name('perfil.password');
+    Route::put('perfil/password', [PerfilController::class, 'updatePassword'])
+        ->name('perfil.password')
+        ->middleware('throttle:change-password');
 
     // ------------------------------------------------------------
     // FACTURAS (admin y vendedor)

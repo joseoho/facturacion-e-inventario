@@ -21,8 +21,18 @@ class TasaCambioController extends Controller
     public function index(Request $request)
     {
         $this->authorize('viewAny', TasaCambio::class);
-        // Configurar paginación
-        $perPage = $request->input('per_page', 20);
+
+        $request->validate([
+            'fecha_desde' => ['nullable', 'date'],
+            'fecha_hasta' => ['nullable', 'date'],
+            'tasa_min' => ['nullable', 'numeric'],
+            'tasa_max' => ['nullable', 'numeric'],
+            'moneda_id' => ['nullable', 'integer'],
+        ]);
+
+        // Configurar paginación (acotada para evitar respuestas gigantes)
+        $perPage = (int) $request->input('per_page', 20);
+        $perPage = min(max($perPage, 1), 100);
         $sort = $request->input('sort', 'fecha');
         $direction = $request->input('direction', 'desc');
 

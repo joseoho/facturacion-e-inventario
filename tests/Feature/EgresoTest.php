@@ -252,4 +252,27 @@ class EgresoTest extends TestCase
             ->get(route('egresos.index'))
             ->assertRedirect(route('dashboard'));
     }
+
+    public function test_rechaza_monto_mayor_al_soportado_por_la_columna(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $datos = $this->escenario(inventario: false);
+        $datos['payload']['monto'] = 100000000;
+
+        $this->actingAs($admin)
+            ->postJson(route('egresos.store'), $datos['payload'])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('monto');
+
+        $this->assertSame(0, Egreso::count());
+    }
+
+    public function test_filtro_con_fecha_invalida_redirige_sin_500(): void
+    {
+        $admin = User::factory()->admin()->create();
+
+        $this->actingAs($admin)
+            ->get(route('egresos.index', ['desde' => 'no-es-fecha']))
+            ->assertStatus(302);
+    }
 }

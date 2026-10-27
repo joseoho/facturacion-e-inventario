@@ -188,6 +188,18 @@ Revísalo en este orden:
 Revisa `storage/logs/laravel.log` y confirma que `storage/` y `bootstrap/cache/`
 tengan permisos de escritura.
 
+## Seguridad
+
+- CSRF en todos los formularios y `X-CSRF-TOKEN` en las peticiones `fetch`.
+- Rate limiting: login 5/min por email+IP; solicitud de recuperación 5/min;
+  reset 10/min; cambio de contraseña 6/min.
+- Autorización por rol (`admin`/`vendedor`) y Policies por recurso.
+- Consultas con bindings de Eloquent y salida escapada por Blade.
+- Cabeceras `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy` y
+  `Permissions-Policy`.
+- Subida de imágenes validada por MIME real y tamaño máximo de 2 MB.
+- `APP_DEBUG=false` en producción y `.env` fuera del repositorio.
+
 ## Comandos
 
 ```bash

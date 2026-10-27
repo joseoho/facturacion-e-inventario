@@ -76,8 +76,12 @@ class ReporteController extends Controller
      */
     public function ventasDiarias(Request $request)
     {
-        $fecha = $request->get('fecha')
-            ? Carbon::parse($request->fecha)
+        $validated = $request->validate([
+            'fecha' => ['nullable', 'date'],
+        ]);
+
+        $fecha = ! empty($validated['fecha'])
+            ? Carbon::parse($validated['fecha'])
             : today();
 
         $ventas = Factura::whereDate('fecha_emision', $fecha)

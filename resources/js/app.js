@@ -64,6 +64,21 @@ document.addEventListener('alpine:init', () => {
     });
 });
 
+// Evita el doble envío de formularios clásicos.
+document.addEventListener('submit', (event) => {
+    const form = event.target
+
+    if (!(form instanceof HTMLFormElement)) return
+
+    const button = form.querySelector('button[type="submit"], input[type="submit"]')
+    if (!button) return
+
+    setTimeout(() => {
+        button.disabled = true
+        button.classList.add('disabled')
+    }, 0)
+})
+
 // Cerrar sidebar al hacer click en enlace (móvil)
 document.addEventListener('DOMContentLoaded', function() {
     const navLinks = document.querySelectorAll('.sidebar-nav .nav-link');
