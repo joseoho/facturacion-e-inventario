@@ -132,6 +132,19 @@ Al terminar debe existir `public/build/manifest.json`. `npm run dev` es solo par
 desarrollo: levanta un servidor que debe quedar abierto y no genera el manifest de
 producción.
 
+### Las imágenes de productos no se ven (404)
+
+Falta el enlace `public/storage`. En Windows, si `public\storage` existe como
+carpeta vacía, `php artisan storage:link` falla y las imágenes subidas no se
+sirven. Ejecuta:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\storage-link.ps1
+```
+
+Crea un *junction* `public\storage -> storage\app\public` sin necesidad de
+administrador. El instalador ya ejecuta este paso automáticamente.
+
 ### Error 419 «Page Expired» al iniciar sesión
 
 Es un problema de **CSRF/sesión**, no del código.
@@ -187,6 +200,34 @@ Revísalo en este orden:
 
 Revisa `storage/logs/laravel.log` y confirma que `storage/` y `bootstrap/cache/`
 tengan permisos de escritura.
+
+## Respaldos
+
+Antes de cada migración, el instalador crea `backups\AAAAMMDD_HHMMSS\` con:
+
+- `facturacion_db.sql` (volcado completo con `mysqldump`).
+- `storage\` (imágenes de productos).
+- `.env` (credenciales; protégelo).
+
+Para respaldar manualmente:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\backup.ps1
+```
+
+Restaurar:
+
+1. Detener Apache.
+2. Restaurar la base (desde `cmd`):
+   ```bat
+   "C:\xampp\mysql\bin\mysql.exe" -u root -p facturacion_db < backups\AAAAMMDD_HHMMSS\facturacion_db.sql
+   ```
+3. Copiar `backups\AAAAMMDD_HHMMSS\storage\*` a `storage\app\public`.
+4. Restaurar `.env` si cambió y ejecutar `php artisan optimize:clear`.
+
+Copia los respaldos fuera del equipo. **No uses `php artisan migrate:fresh` en
+producción**: borra todas las tablas. El instalador solo ejecuta
+`migrate --force`, que agrega cambios sin eliminar datos.
 
 ## Seguridad
 

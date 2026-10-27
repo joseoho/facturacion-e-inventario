@@ -195,6 +195,13 @@ if errorlevel 1 goto :fin_error
 
 "%PHP%" artisan optimize:clear >nul 2>&1
 
+REM Respaldo automatico antes de tocar la base (si ya existe).
+echo     Respaldando datos antes de migrar...
+powershell -NoProfile -ExecutionPolicy Bypass -File "scripts\backup.ps1" -AppDir "%APP_DIR%" -Xampp "%XAMPP%"
+if errorlevel 1 (
+    echo [AVISO] No se pudo crear el respaldo. Se continua con la instalacion.
+)
+
 REM ------------------------------------------------------------
 REM 7) Migraciones y datos iniciales
 REM ------------------------------------------------------------
@@ -263,7 +270,10 @@ if not exist "public\build\manifest.json" (
     goto :fin_error
 )
 
-"%PHP%" artisan storage:link >nul 2>&1
+powershell -NoProfile -ExecutionPolicy Bypass -File "scripts\storage-link.ps1" -AppDir "%APP_DIR%"
+if errorlevel 1 (
+    echo [AVISO] No se pudo enlazar public\storage. Las imagenes no se veran.
+)
 echo [OK] Assets compilados.
 
 REM ------------------------------------------------------------
