@@ -56,13 +56,13 @@ class ClienteController extends Controller
     {
         $this->authorize('create', Cliente::class);
         $validated = $request->validate([
-            'nombre' => 'required|string|max:255',
+            'nombre' => 'required|string|max:200',
             'documento' => 'required|string|max:50|unique:clientes,documento',
             'tipo_documento' => 'required|string|in:J,V,G,E,CI,OTRO',
             'direccion' => 'nullable|string|max:500',
             'telefono' => 'nullable|string|max:20',
-            'email' => 'nullable|email|max:255|unique:clientes,email',
-            'contacto' => 'nullable|string|max:255',
+            'email' => 'nullable|email|max:100|unique:clientes,email',
+            'contacto' => 'nullable|string|max:100',
             'tipo_cliente' => 'required|string|in:minorista,mayorista,corporativo',
             'limite_credito' => 'nullable|numeric|min:0|max:99999999.99',
             'dias_credito' => 'nullable|integer|min:0|max:365',
@@ -71,6 +71,9 @@ class ClienteController extends Controller
         ]);
 
         $validated['activo'] = $request->has('activo');
+        // Columnas NOT NULL: si el formulario llega vacío, se guarda 0.
+        $validated['limite_credito'] = $validated['limite_credito'] ?? 0;
+        $validated['dias_credito'] = $validated['dias_credito'] ?? 0;
 
         Cliente::create($validated);
 
@@ -120,13 +123,13 @@ class ClienteController extends Controller
     {
         $this->authorize('update', $cliente);
         $validated = $request->validate([
-            'nombre' => 'required|string|max:255',
+            'nombre' => 'required|string|max:200',
             'documento' => 'required|string|max:50|unique:clientes,documento,'.$cliente->id,
             'tipo_documento' => 'required|string|in:J,V,G,E,CI,OTRO',
             'direccion' => 'nullable|string|max:500',
             'telefono' => 'nullable|string|max:20',
-            'email' => 'nullable|email|max:255|unique:clientes,email,'.$cliente->id,
-            'contacto' => 'nullable|string|max:255',
+            'email' => 'nullable|email|max:100|unique:clientes,email,'.$cliente->id,
+            'contacto' => 'nullable|string|max:100',
             'tipo_cliente' => 'required|string|in:minorista,mayorista,corporativo',
             'limite_credito' => 'nullable|numeric|min:0|max:99999999.99',
             'dias_credito' => 'nullable|integer|min:0|max:365',
@@ -135,6 +138,9 @@ class ClienteController extends Controller
         ]);
 
         $validated['activo'] = $request->has('activo');
+        // Columnas NOT NULL: si el formulario llega vacío, se guarda 0.
+        $validated['limite_credito'] = $validated['limite_credito'] ?? 0;
+        $validated['dias_credito'] = $validated['dias_credito'] ?? 0;
 
         $cliente->update($validated);
 
