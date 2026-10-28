@@ -47,6 +47,7 @@ class AccesoTest extends TestCase
         $this->actingAs($admin)->get(route('categorias-egreso.index'))->assertOk();
         $this->actingAs($admin)->get(route('monedas.index'))->assertOk();
         $this->actingAs($admin)->get(route('tasas.index'))->assertOk();
+        $this->actingAs($admin)->get(route('tasas.historial'))->assertOk();
     }
 
     public function test_el_dashboard_muestra_finanzas_solo_al_admin(): void
