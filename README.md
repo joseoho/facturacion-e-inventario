@@ -229,6 +229,28 @@ Copia los respaldos fuera del equipo. **No uses `php artisan migrate:fresh` en
 producción**: borra todas las tablas. El instalador solo ejecuta
 `migrate --force`, que agrega cambios sin eliminar datos.
 
+## Actualizar una instalación existente
+
+`git pull` solo trae código. Para aplicar una actualización completa sin perder
+data, ejecuta en la raíz del proyecto:
+
+```bat
+actualizar.bat
+```
+
+El actualizador:
+
+1. Hace `git pull --ff-only` (se detiene si hay cambios locales).
+2. Crea un respaldo en `backups\AAAAMMDD_HHMMSS\`.
+3. Ejecuta `composer install` solo si cambió `composer.json`/`composer.lock`.
+4. Aplica `migrate --force` y ejecuta el seeder idempotente solo si cambian los seeders.
+5. Ejecuta `npm ci` y `npm run build` solo si cambió el frontend.
+6. Limpia cachés y verifica el enlace `public\storage`.
+
+Si no hay commits nuevos, termina sin tocar la base. Requiere que la carpeta sea
+un clon de Git; si la instalación vino de un ZIP, primero hay que convertirla o
+clonar el repositorio.
+
 ## Seguridad
 
 - CSRF en todos los formularios y `X-CSRF-TOKEN` en las peticiones `fetch`.
