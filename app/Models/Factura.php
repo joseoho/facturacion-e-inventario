@@ -102,6 +102,19 @@ class Factura extends Model
             $tasa = (float) ($this->tasaCambio?->tasa ?? 0);
         }
 
+        $codigo = $this->moneda_pago ?: $this->moneda?->codigo;
+
+        // Facturas antiguas sin tasa guardada: buscar la tasa vigente
+        // para esa moneda en la fecha de emisión.
+        if ($tasa <= 0 && $codigo && strtoupper((string) $codigo) !== 'USD') {
+            $tasa = (float) TasaCambio::query()
+                ->where('moneda_id', $this->moneda_id)
+                ->whereDate('fecha', '<=', $this->fecha_emision)
+                ->orderByDesc('fecha')
+                ->orderByDesc('id')
+                ->value('tasa');
+        }
+
         $total = (float) $this->total;
 
         return round($tasa > 0 ? $total / $tasa : $total, 4);

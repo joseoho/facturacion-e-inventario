@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Factura;
 use App\Models\Moneda;
+use App\Models\TasaCambio;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -122,5 +123,27 @@ class ReporteVentasTest extends TestCase
             ]))
             ->assertOk()
             ->assertSee('No hay facturas pagadas en este rango de fechas.');
+    }
+
+    public function test_usa_la_tasa_historica_si_la_factura_no_la_guardo(): void
+    {
+        $bs = Moneda::factory()->create(['codigo' => 'BS']);
+
+        TasaCambio::factory()->create([
+            'moneda_id' => $bs->id,
+            'tasa' => 800,
+            'fecha' => '2026-01-10',
+        ]);
+
+        $factura = $this->factura([
+            'fecha_emision' => '2026-01-10',
+            'moneda_id' => $bs->id,
+            'moneda_pago' => 'BS',
+            'tasa_cambio_id' => null,
+            'tasa_cambio_usada' => null,
+            'total' => 800,
+        ]);
+
+        $this->assertEquals(1.0, $factura->fresh()->total_usd_calculado);
     }
 }
