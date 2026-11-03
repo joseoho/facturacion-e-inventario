@@ -72,37 +72,100 @@ class ReporteController extends Controller
     }
 
     /**
-     * Reporte de ventas diarias
+     * Reporte de facturación por rango de fechas.
      */
     public function ventasDiarias(Request $request)
     {
         $validated = $request->validate([
             'fecha' => ['nullable', 'date'],
+            'fecha_inicio' => ['nullable', 'date'],
+            'fecha_fin' => ['nullable', 'date'],
         ]);
 
-        $fecha = ! empty($validated['fecha'])
-            ? Carbon::parse($validated['fecha'])
-            : today();
+        $inicioInput = $validated['fecha_inicio']
+            ?? $validated['fecha']
+            ?? today()->toDateString();
 
-        $ventas = Factura::whereDate('fecha_emision', $fecha)
-            ->where('estado', 'pagada')
-            ->with(['cliente', 'moneda'])
+        $finInput = $validated['fecha_fin']
+            ?? $validated['fecha']
+            ?? $inicioInput;
+
+        $inicio = Carbon::parse($inicioInput)->startOfDay();
+        $fin = Carbon::parse($finInput)->endOfDay();
+
+        if ($inicio->gt($fin)) {
+            return back()
+                ->withErrors(['fecha_fin' => 'La fecha final no puede ser anterior a la inicial.'])
+                ->withInput();
+        }
+
+        $ventas = Factura::query()
+            ->whereDate('fecha_emision', '>=', $inicio->toDateString())
+            ->whereDate('fecha_emision', '<=', $fin->toDateString())
+            ->where('estado', Factura::ESTADO_PAGADA)
+            ->with(['cliente', 'moneda', 'tasaCambio'])
+            ->orderBy('fecha_emision')
+            ->orderBy('id')
             ->get();
 
-        $totales = [
-            'total_ventas' => $ventas->sum('total'),
-            'total_facturas' => $ventas->count(),
-            'promedio' => $ventas->avg('total') ?? 0,
-            'por_moneda' => $ventas->groupBy('moneda_id')->map(function ($group) {
+        $totalUsd = fn (Factura $factura) => $factura->total_usd_calculado;
+
+        $porMoneda = $ventas
+            ->groupBy(fn (Factura $factura) => $factura->moneda_pago
+                ?: ($factura->moneda?->codigo ?? 'N/A'))
+            ->map(function ($grupo, $codigo) use ($totalUsd) {
                 return [
-                    'moneda' => $group->first()->moneda->codigo,
-                    'total' => $group->sum('total'),
-                    'cantidad' => $group->count(),
+                    'moneda' => $codigo,
+                    'cantidad' => $grupo->count(),
+                    'total' => (float) $grupo->sum(fn (Factura $factura) => (float) $factura->total),
+                    'total_usd' => (float) $grupo->sum($totalUsd),
                 ];
-            })->values()->toArray(),
+            })
+            ->sortByDesc('total_usd')
+            ->values();
+
+        $codigos = $porMoneda->pluck('moneda')->all();
+
+        $porDia = $ventas
+            ->groupBy(fn (Factura $factura) => $factura->fecha_emision->format('Y-m-d'))
+            ->map(function ($grupo, $fecha) use ($codigos, $totalUsd) {
+                $fila = [
+                    'fecha' => Carbon::parse($fecha),
+                    'cantidad' => $grupo->count(),
+                    'total_usd' => (float) $grupo->sum($totalUsd),
+                    'monedas' => [],
+                ];
+
+                foreach ($codigos as $codigo) {
+                    $fila['monedas'][$codigo] = (float) $grupo
+                        ->filter(fn (Factura $factura) => ($factura->moneda_pago
+                            ?: ($factura->moneda?->codigo ?? 'N/A')) === $codigo)
+                        ->sum(fn (Factura $factura) => (float) $factura->total);
+                }
+
+                return $fila;
+            })
+            ->sortKeys()
+            ->values();
+
+        $totalUsdGeneral = (float) $ventas->sum($totalUsd);
+        $cantidad = $ventas->count();
+
+        $totales = [
+            'total_usd' => $totalUsdGeneral,
+            'total_facturas' => $cantidad,
+            'promedio_usd' => $cantidad > 0 ? $totalUsdGeneral / $cantidad : 0,
+            'por_moneda' => $porMoneda->toArray(),
+            'monedas_count' => $porMoneda->count(),
         ];
 
-        return view('reportes.ventas-diarias', compact('ventas', 'totales', 'fecha'));
+        return view('reportes.ventas-diarias', compact(
+            'ventas',
+            'totales',
+            'inicio',
+            'fin',
+            'porDia'
+        ));
     }
 
     /**

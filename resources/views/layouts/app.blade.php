@@ -705,7 +705,7 @@
                 </li>
                 <li class="nav-item">
                     <a class="nav-link {{ request()->routeIs('reportes.ventas.diarias') ? 'active' : '' }}" href="{{ route('reportes.ventas.diarias') }}">
-                        <i class="bi bi-graph-up"></i> Ventas Diarias
+                        <i class="bi bi-graph-up"></i> Ventas por fecha
                     </a>
                 </li>
                 @endcan

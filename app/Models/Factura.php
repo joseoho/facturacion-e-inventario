@@ -90,6 +90,23 @@ class Factura extends Model
         return $estados[$this->estado] ?? 'Desconocido';
     }
 
+    /**
+     * Total de la factura convertido a USD con la tasa guardada.
+     * Si la tasa es cero o no existe, se asume que el total ya está en USD.
+     */
+    public function getTotalUsdCalculadoAttribute(): float
+    {
+        $tasa = (float) ($this->tasa_cambio_usada ?? 0);
+
+        if ($tasa <= 0 && $this->tasa_cambio_id) {
+            $tasa = (float) ($this->tasaCambio?->tasa ?? 0);
+        }
+
+        $total = (float) $this->total;
+
+        return round($tasa > 0 ? $total / $tasa : $total, 4);
+    }
+
     // Scopes
     public function scopePendientes($query)
     {
