@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Cliente;
 use App\Models\Factura;
 use App\Models\Moneda;
 use App\Models\TasaCambio;
@@ -86,7 +87,83 @@ class ReporteVentasTest extends TestCase
                 && (float) $porMoneda['BS']['total_usd'] === 100.0;
         });
 
-        $response->assertViewHas('porDia', fn ($dias) => $dias->count() === 2);
+        $response->assertViewHas('porPeriodo', fn ($periodos) => $periodos->count() === 2);
+    }
+
+    public function test_filtra_por_cliente(): void
+    {
+        $admin = $this->admin();
+        $usd = Moneda::factory()->base()->create();
+
+        $clienteA = Cliente::factory()->create(['nombre' => 'Cliente Alfa']);
+        $clienteB = Cliente::factory()->create(['nombre' => 'Cliente Beta']);
+
+        $this->factura([
+            'fecha_emision' => '2026-01-10',
+            'cliente_id' => $clienteA->id,
+            'moneda_id' => $usd->id,
+            'total' => 100,
+        ]);
+
+        $this->factura([
+            'fecha_emision' => '2026-01-10',
+            'cliente_id' => $clienteB->id,
+            'moneda_id' => $usd->id,
+            'total' => 300,
+        ]);
+
+        $response = $this->actingAs($admin)->get(route('reportes.ventas.diarias', [
+            'fecha_inicio' => '2026-01-01',
+            'fecha_fin' => '2026-01-31',
+            'cliente_id' => $clienteA->id,
+        ]));
+
+        $response->assertOk();
+        $response->assertViewHas('totales', function (array $totales) {
+            return $totales['total_facturas'] === 1
+                && (float) $totales['total_usd'] === 100.0
+                && $totales['clientes_count'] === 1;
+        });
+        $response->assertViewHas('porCliente', function ($clientes) {
+            return $clientes->count() === 1
+                && $clientes->first()['cliente'] === 'Cliente Alfa';
+        });
+    }
+
+    public function test_agrupa_por_semana_y_mes(): void
+    {
+        $admin = $this->admin();
+        $usd = Moneda::factory()->base()->create();
+        $cliente = Cliente::factory()->create();
+
+        foreach (['2026-01-05', '2026-01-07', '2026-02-03'] as $fecha) {
+            $this->factura([
+                'fecha_emision' => $fecha,
+                'cliente_id' => $cliente->id,
+                'moneda_id' => $usd->id,
+                'total' => 100,
+            ]);
+        }
+
+        $response = $this->actingAs($admin)->get(route('reportes.ventas.diarias', [
+            'fecha_inicio' => '2026-01-01',
+            'fecha_fin' => '2026-02-28',
+            'agrupar' => 'semana',
+        ]));
+
+        $response->assertOk();
+        $response->assertViewHas('agrupar', 'semana');
+        $response->assertViewHas('porPeriodo', fn ($periodos) => $periodos->count() === 2);
+
+        $response = $this->actingAs($admin)->get(route('reportes.ventas.diarias', [
+            'fecha_inicio' => '2026-01-01',
+            'fecha_fin' => '2026-02-28',
+            'agrupar' => 'mes',
+        ]));
+
+        $response->assertOk();
+        $response->assertViewHas('agrupar', 'mes');
+        $response->assertViewHas('porPeriodo', fn ($periodos) => $periodos->count() === 2);
     }
 
     public function test_rechaza_rango_con_fecha_final_anterior(): void
@@ -145,5 +222,20 @@ class ReporteVentasTest extends TestCase
         ]);
 
         $this->assertEquals(1.0, $factura->fresh()->total_usd_calculado);
+    }
+
+    public function test_factura_usd_no_se_divide_aunque_tenga_una_tasa_vieja(): void
+    {
+        $usd = Moneda::factory()->base()->create();
+
+        $factura = $this->factura([
+            'fecha_emision' => '2026-01-10',
+            'moneda_id' => $usd->id,
+            'moneda_pago' => 'USD',
+            'tasa_cambio_usada' => 800,
+            'total' => 100,
+        ]);
+
+        $this->assertEquals(100.0, $factura->fresh()->total_usd_calculado);
     }
 }

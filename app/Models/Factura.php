@@ -96,17 +96,24 @@ class Factura extends Model
      */
     public function getTotalUsdCalculadoAttribute(): float
     {
+        $codigo = strtoupper((string) ($this->moneda_pago ?: ($this->moneda?->codigo ?? 'USD')));
+        $total = (float) $this->total;
+
+        // En USD no se aplica tasa, aunque la factura antigua tenga una
+        // tasa guardada por error.
+        if ($codigo === 'USD') {
+            return round($total, 4);
+        }
+
         $tasa = (float) ($this->tasa_cambio_usada ?? 0);
 
         if ($tasa <= 0 && $this->tasa_cambio_id) {
             $tasa = (float) ($this->tasaCambio?->tasa ?? 0);
         }
 
-        $codigo = $this->moneda_pago ?: $this->moneda?->codigo;
-
         // Facturas antiguas sin tasa guardada: buscar la tasa vigente
         // para esa moneda en la fecha de emisión.
-        if ($tasa <= 0 && $codigo && strtoupper((string) $codigo) !== 'USD') {
+        if ($tasa <= 0) {
             $tasa = (float) TasaCambio::query()
                 ->where('moneda_id', $this->moneda_id)
                 ->whereDate('fecha', '<=', $this->fecha_emision)
@@ -114,8 +121,6 @@ class Factura extends Model
                 ->orderByDesc('id')
                 ->value('tasa');
         }
-
-        $total = (float) $this->total;
 
         return round($tasa > 0 ? $total / $tasa : $total, 4);
     }

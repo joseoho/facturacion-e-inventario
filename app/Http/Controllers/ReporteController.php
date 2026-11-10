@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Categoria;
+use App\Models\Cliente;
 use App\Models\Factura;
 use App\Models\Producto;
 use Carbon\Carbon;
@@ -80,6 +81,8 @@ class ReporteController extends Controller
             'fecha' => ['nullable', 'date'],
             'fecha_inicio' => ['nullable', 'date'],
             'fecha_fin' => ['nullable', 'date'],
+            'cliente_id' => ['nullable', 'integer', 'exists:clientes,id'],
+            'agrupar' => ['nullable', 'in:dia,semana,mes'],
         ]);
 
         $inicioInput = $validated['fecha_inicio']
@@ -92,6 +95,8 @@ class ReporteController extends Controller
 
         $inicio = Carbon::parse($inicioInput)->startOfDay();
         $fin = Carbon::parse($finInput)->endOfDay();
+        $clienteId = isset($validated['cliente_id']) ? (int) $validated['cliente_id'] : null;
+        $agrupar = $validated['agrupar'] ?? 'dia';
 
         if ($inicio->gt($fin)) {
             return back()
@@ -99,20 +104,27 @@ class ReporteController extends Controller
                 ->withInput();
         }
 
+        $clientes = Cliente::orderBy('nombre')->get(['id', 'nombre']);
+        $clienteSeleccionado = $clienteId
+            ? $clientes->firstWhere('id', $clienteId)
+            : null;
+
         $ventas = Factura::query()
             ->whereDate('fecha_emision', '>=', $inicio->toDateString())
             ->whereDate('fecha_emision', '<=', $fin->toDateString())
             ->where('estado', Factura::ESTADO_PAGADA)
+            ->when($clienteId, fn ($query) => $query->where('cliente_id', $clienteId))
             ->with(['cliente', 'moneda', 'tasaCambio'])
             ->orderBy('fecha_emision')
             ->orderBy('id')
             ->get();
 
         $totalUsd = fn (Factura $factura) => $factura->total_usd_calculado;
+        $codigoMoneda = fn (Factura $factura) => $factura->moneda_pago
+            ?: ($factura->moneda?->codigo ?? 'N/A');
 
         $porMoneda = $ventas
-            ->groupBy(fn (Factura $factura) => $factura->moneda_pago
-                ?: ($factura->moneda?->codigo ?? 'N/A'))
+            ->groupBy($codigoMoneda)
             ->map(function ($grupo, $codigo) use ($totalUsd) {
                 return [
                     'moneda' => $codigo,
@@ -126,11 +138,44 @@ class ReporteController extends Controller
 
         $codigos = $porMoneda->pluck('moneda')->all();
 
-        $porDia = $ventas
-            ->groupBy(fn (Factura $factura) => $factura->fecha_emision->format('Y-m-d'))
-            ->map(function ($grupo, $fecha) use ($codigos, $totalUsd) {
+        $porPeriodo = $ventas
+            ->groupBy(function (Factura $factura) use ($agrupar) {
+                $fecha = $factura->fecha_emision;
+
+                return match ($agrupar) {
+                    'semana' => $fecha->copy()->startOfWeek()->format('Y-m-d'),
+                    'mes' => $fecha->format('Y-m'),
+                    default => $fecha->format('Y-m-d'),
+                };
+            })
+            ->map(function ($grupo, $clave) use ($agrupar, $codigos, $totalUsd, $codigoMoneda) {
+                $primera = $grupo->first()->fecha_emision->copy();
+
+                if ($agrupar === 'semana') {
+                    $inicioPeriodo = $primera->startOfWeek();
+                    $finPeriodo = $inicioPeriodo->copy()->endOfWeek();
+                    $etiqueta = 'Semana del '.$inicioPeriodo->format('d/m')
+                        .' al '.$finPeriodo->format('d/m/Y');
+                } elseif ($agrupar === 'mes') {
+                    $inicioPeriodo = $primera->startOfMonth();
+                    $finPeriodo = $inicioPeriodo->copy()->endOfMonth();
+                    $meses = [
+                        1 => 'Enero', 2 => 'Febrero', 3 => 'Marzo', 4 => 'Abril',
+                        5 => 'Mayo', 6 => 'Junio', 7 => 'Julio', 8 => 'Agosto',
+                        9 => 'Septiembre', 10 => 'Octubre', 11 => 'Noviembre', 12 => 'Diciembre',
+                    ];
+                    $etiqueta = $meses[(int) $inicioPeriodo->format('n')].' '.$inicioPeriodo->format('Y');
+                } else {
+                    $inicioPeriodo = $primera->startOfDay();
+                    $finPeriodo = $primera->copy()->endOfDay();
+                    $etiqueta = $inicioPeriodo->format('d/m/Y');
+                }
+
                 $fila = [
-                    'fecha' => Carbon::parse($fecha),
+                    'clave' => $clave,
+                    'etiqueta' => $etiqueta,
+                    'inicio' => $inicioPeriodo,
+                    'fin' => $finPeriodo,
                     'cantidad' => $grupo->count(),
                     'total_usd' => (float) $grupo->sum($totalUsd),
                     'monedas' => [],
@@ -138,14 +183,34 @@ class ReporteController extends Controller
 
                 foreach ($codigos as $codigo) {
                     $fila['monedas'][$codigo] = (float) $grupo
-                        ->filter(fn (Factura $factura) => ($factura->moneda_pago
-                            ?: ($factura->moneda?->codigo ?? 'N/A')) === $codigo)
+                        ->filter(fn (Factura $factura) => $codigoMoneda($factura) === $codigo)
                         ->sum(fn (Factura $factura) => (float) $factura->total);
                 }
 
                 return $fila;
             })
             ->sortKeys()
+            ->values();
+
+        $porCliente = $ventas
+            ->groupBy('cliente_id')
+            ->map(function ($grupo) use ($codigos, $totalUsd, $codigoMoneda) {
+                $fila = [
+                    'cliente' => $grupo->first()->cliente?->nombre ?? 'Sin cliente',
+                    'cantidad' => $grupo->count(),
+                    'total_usd' => (float) $grupo->sum($totalUsd),
+                    'monedas' => [],
+                ];
+
+                foreach ($codigos as $codigo) {
+                    $fila['monedas'][$codigo] = (float) $grupo
+                        ->filter(fn (Factura $factura) => $codigoMoneda($factura) === $codigo)
+                        ->sum(fn (Factura $factura) => (float) $factura->total);
+                }
+
+                return $fila;
+            })
+            ->sortByDesc('total_usd')
             ->values();
 
         $totalUsdGeneral = (float) $ventas->sum($totalUsd);
@@ -157,6 +222,8 @@ class ReporteController extends Controller
             'promedio_usd' => $cantidad > 0 ? $totalUsdGeneral / $cantidad : 0,
             'por_moneda' => $porMoneda->toArray(),
             'monedas_count' => $porMoneda->count(),
+            'clientes_count' => $ventas->pluck('cliente_id')->filter()->unique()->count(),
+            'agrupar' => $agrupar,
         ];
 
         return view('reportes.ventas-diarias', compact(
@@ -164,7 +231,12 @@ class ReporteController extends Controller
             'totales',
             'inicio',
             'fin',
-            'porDia'
+            'porPeriodo',
+            'porCliente',
+            'clientes',
+            'clienteSeleccionado',
+            'clienteId',
+            'agrupar'
         ));
     }
 

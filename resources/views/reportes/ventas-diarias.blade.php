@@ -10,6 +10,11 @@
     $finSemana = $hoy->copy()->endOfWeek();
     $inicioMes = $hoy->copy()->startOfMonth();
     $finMes = $hoy->copy()->endOfMonth();
+    $agrupacionLabel = ['dia' => 'Diario', 'semana' => 'Semanal', 'mes' => 'Mensual'][$agrupar] ?? 'Diario';
+    $filtrosBase = array_filter([
+        'cliente_id' => $clienteId,
+        'agrupar' => $agrupar,
+    ], fn ($valor) => $valor !== null && $valor !== '');
 @endphp
 
 <div>
@@ -35,7 +40,7 @@
     <div class="stat-card mb-3 no-print">
         <form method="GET" action="{{ route('reportes.ventas.diarias') }}">
             <div class="row g-2 align-items-end">
-                <div class="col-12 col-md-3">
+                <div class="col-12 col-md-2">
                     <label for="fecha_inicio" class="form-label">Fecha inicio</label>
                     <input type="date" name="fecha_inicio" id="fecha_inicio"
                            class="form-control @error('fecha_inicio') is-invalid @enderror"
@@ -45,7 +50,7 @@
                     @enderror
                 </div>
 
-                <div class="col-12 col-md-3">
+                <div class="col-12 col-md-2">
                     <label for="fecha_fin" class="form-label">Fecha fin</label>
                     <input type="date" name="fecha_fin" id="fecha_fin"
                            class="form-control @error('fecha_fin') is-invalid @enderror"
@@ -55,28 +60,63 @@
                     @enderror
                 </div>
 
+                <div class="col-12 col-md-4">
+                    <label for="cliente_id" class="form-label">Cliente</label>
+                    <select name="cliente_id" id="cliente_id"
+                            class="form-select @error('cliente_id') is-invalid @enderror">
+                        <option value="">Todos los clientes</option>
+                        @foreach ($clientes as $cliente)
+                            <option value="{{ $cliente->id }}"
+                                @selected((string) old('cliente_id', $clienteId) === (string) $cliente->id)>
+                                {{ $cliente->nombre }}
+                            </option>
+                        @endforeach
+                    </select>
+                    @error('cliente_id')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div>
+
+                <div class="col-12 col-md-2">
+                    <label for="agrupar" class="form-label">Agrupar por</label>
+                    <select name="agrupar" id="agrupar"
+                            class="form-select @error('agrupar') is-invalid @enderror">
+                        <option value="dia" @selected(old('agrupar', $agrupar) === 'dia')>Día</option>
+                        <option value="semana" @selected(old('agrupar', $agrupar) === 'semana')>Semana</option>
+                        <option value="mes" @selected(old('agrupar', $agrupar) === 'mes')>Mes</option>
+                    </select>
+                    @error('agrupar')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div>
+
                 <div class="col-12 col-md-2">
                     <button type="submit" class="btn btn-primary w-100">
                         <i class="bi bi-search me-1"></i> Filtrar
                     </button>
                 </div>
+            </div>
 
-                <div class="col-12 col-md-4 text-md-end">
-                    <div class="btn-group btn-group-sm" role="group" aria-label="Rangos rápidos">
-                        <a class="btn btn-outline-secondary"
-                           href="{{ route('reportes.ventas.diarias', ['fecha_inicio' => $hoy->toDateString(), 'fecha_fin' => $hoy->toDateString()]) }}">
-                            Hoy
-                        </a>
-                        <a class="btn btn-outline-secondary"
-                           href="{{ route('reportes.ventas.diarias', ['fecha_inicio' => $inicioSemana->toDateString(), 'fecha_fin' => $finSemana->toDateString()]) }}">
-                            Semana
-                        </a>
-                        <a class="btn btn-outline-secondary"
-                           href="{{ route('reportes.ventas.diarias', ['fecha_inicio' => $inicioMes->toDateString(), 'fecha_fin' => $finMes->toDateString()]) }}">
-                            Mes
-                        </a>
-                    </div>
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-2">
+                <div class="btn-group btn-group-sm" role="group" aria-label="Rangos rápidos">
+                    <a class="btn btn-outline-secondary"
+                       href="{{ route('reportes.ventas.diarias', array_merge($filtrosBase, ['fecha_inicio' => $hoy->toDateString(), 'fecha_fin' => $hoy->toDateString()])) }}">
+                        Hoy
+                    </a>
+                    <a class="btn btn-outline-secondary"
+                       href="{{ route('reportes.ventas.diarias', array_merge($filtrosBase, ['fecha_inicio' => $inicioSemana->toDateString(), 'fecha_fin' => $finSemana->toDateString()])) }}">
+                        Semana
+                    </a>
+                    <a class="btn btn-outline-secondary"
+                       href="{{ route('reportes.ventas.diarias', array_merge($filtrosBase, ['fecha_inicio' => $inicioMes->toDateString(), 'fecha_fin' => $finMes->toDateString()])) }}">
+                        Mes
+                    </a>
                 </div>
+
+                <a class="btn btn-sm btn-outline-secondary"
+                   href="{{ route('reportes.ventas.diarias') }}">
+                    <i class="bi bi-x-circle me-1"></i> Limpiar filtros
+                </a>
             </div>
         </form>
     </div>
@@ -109,8 +149,8 @@
         </div>
         <div class="col-6 col-md-3">
             <div class="stat-card h-100">
-                <span class="text-muted small text-uppercase fw-semibold">Monedas</span>
-                <h3 class="mb-0 mt-1 fw-bold">{{ $totales['monedas_count'] }}</h3>
+                <span class="text-muted small text-uppercase fw-semibold">Clientes</span>
+                <h3 class="mb-0 mt-1 fw-bold">{{ $totales['clientes_count'] }}</h3>
                 <small class="text-muted">Con ventas en el rango</small>
             </div>
         </div>
@@ -176,17 +216,21 @@
         @endif
     </div>
 
-    @if (count($porDia) > 0)
+    @if (count($porPeriodo) > 0)
         <div class="stat-card mb-3">
             <h6 class="fw-bold mb-3">
-                <i class="bi bi-calendar3 me-2"></i> Resumen por día
+                <i class="bi bi-calendar3 me-2"></i>
+                Resumen {{ strtolower($agrupacionLabel) }}
+                @if ($clienteSeleccionado)
+                    <span class="text-muted fw-normal">— {{ $clienteSeleccionado->nombre }}</span>
+                @endif
             </h6>
 
             <div class="table-responsive">
                 <table class="table table-sm table-hover align-middle mb-0">
                     <thead>
                         <tr>
-                            <th>Fecha</th>
+                            <th>Período</th>
                             <th class="text-end">Facturas</th>
                             @foreach ($totales['por_moneda'] as $fila)
                                 <th class="text-end">{{ $fila['moneda'] }}</th>
@@ -195,17 +239,66 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach ($porDia as $dia)
+                        @foreach ($porPeriodo as $fila)
                             <tr>
-                                <td class="fw-semibold">{{ $dia['fecha']->format('d/m/Y') }}</td>
-                                <td class="text-end">{{ number_format($dia['cantidad']) }}</td>
-                                @foreach ($totales['por_moneda'] as $fila)
+                                <td class="fw-semibold">{{ $fila['etiqueta'] }}</td>
+                                <td class="text-end">{{ number_format($fila['cantidad']) }}</td>
+                                @foreach ($totales['por_moneda'] as $moneda)
                                     <td class="text-end">
-                                        {{ number_format($dia['monedas'][$fila['moneda']] ?? 0, 2, ',', '.') }}
+                                        {{ number_format($fila['monedas'][$moneda['moneda']] ?? 0, 2, ',', '.') }}
                                     </td>
                                 @endforeach
                                 <td class="text-end fw-semibold">
-                                    $ {{ number_format($dia['total_usd'], 2, ',', '.') }}
+                                    $ {{ number_format($fila['total_usd'], 2, ',', '.') }}
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                    <tfoot>
+                        <tr class="fw-bold">
+                            <td>Total</td>
+                            <td class="text-end">{{ number_format($totales['total_facturas']) }}</td>
+                            @foreach ($totales['por_moneda'] as $fila)
+                                <td class="text-end">{{ number_format($fila['total'], 2, ',', '.') }}</td>
+                            @endforeach
+                            <td class="text-end">$ {{ number_format($totales['total_usd'], 2, ',', '.') }}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    @endif
+
+    @if (count($porCliente) > 0)
+        <div class="stat-card mb-3">
+            <h6 class="fw-bold mb-3">
+                <i class="bi bi-people me-2"></i> Resumen por cliente
+            </h6>
+
+            <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Cliente</th>
+                            <th class="text-end">Facturas</th>
+                            @foreach ($totales['por_moneda'] as $fila)
+                                <th class="text-end">{{ $fila['moneda'] }}</th>
+                            @endforeach
+                            <th class="text-end">Total USD</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($porCliente as $fila)
+                            <tr>
+                                <td class="fw-semibold">{{ $fila['cliente'] }}</td>
+                                <td class="text-end">{{ number_format($fila['cantidad']) }}</td>
+                                @foreach ($totales['por_moneda'] as $moneda)
+                                    <td class="text-end">
+                                        {{ number_format($fila['monedas'][$moneda['moneda']] ?? 0, 2, ',', '.') }}
+                                    </td>
+                                @endforeach
+                                <td class="text-end fw-semibold">
+                                    $ {{ number_format($fila['total_usd'], 2, ',', '.') }}
                                 </td>
                             </tr>
                         @endforeach
@@ -234,6 +327,10 @@
                         ? 'Fecha: '.$inicio->format('d/m/Y')
                         : 'Del '.$inicio->format('d/m/Y').' al '.$fin->format('d/m/Y') }}
                 </p>
+                <p class="text-muted mb-1">
+                    Cliente: {{ $clienteSeleccionado->nombre ?? 'Todos los clientes' }}
+                </p>
+                <p class="text-muted">Agrupación: {{ $agrupacionLabel }}</p>
                 <p class="text-muted">Generado: {{ now()->format('d/m/Y H:i:s') }}</p>
                 <hr>
             </div>
